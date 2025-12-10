@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#include <SDL_opengl.h>
-
 #include "minrend.h"
 
 /* Placeholder renderer that will eventually integrate Modest.

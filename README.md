@@ -1,12 +1,11 @@
-Minrend – Cross‑Platform Web App Runtime
-========================================
+# Minrend – Cross‑Platform Web App Runtime
 
 Minrend is a **minimal Electron‑style runtime** built in C with:
 
-- Cosmopolitan Libc – build‑once, run‑anywhere C runtime  
-- SDL2 – cross‑platform window + OpenGL context  
-- QuickJS – embeddable JavaScript engine  
-- Modest – HTML/CSS rendering (planned integration)  
+- **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
+- **Sokol** – cross‑platform graphics (D3D11 on Windows, OpenGL on Linux)  
+- **QuickJS** – embeddable JavaScript engine  
+- **Modest** – HTML/CSS rendering (planned integration)  
 
 You build **one native binary** that:
 
@@ -14,44 +13,49 @@ You build **one native binary** that:
 - Loads your HTML/CSS/JS app  
 - Provides a DOM‑like API, `localStorage`, `fetch` (basic), and WebGL hooks  
 
-### Requirements
+## Requirements
 
 - Git  
+- Node.js (for the configurator UI)  
 - PowerShell (Windows)  
-- A C toolchain is bundled via Cosmopolitan’s `cosmocc` (downloaded automatically)  
-- SDL2 + OpenGL development libraries on your platform:
-  - Linux: `libsdl2-dev`, `mesa-dev` (or distro equivalents)  
-  - macOS: Homebrew `sdl2` + system OpenGL  
+- A C toolchain is bundled via Cosmopolitan's `cosmocc` (downloaded automatically)  
 
-### Folder layout
+## Folder Layout
 
-- `src/` – Minrend runtime (engine) C sources  
-- `include/` – public headers  
-- `third_party/` – QuickJS, Modest (cloned automatically)  
-- `app/` – **your** web app (HTML/JS/CSS)  
-  - Default entries: `app/index.html`, `app/main.js`  
-- `scripts/` – helper scripts (`bootstrap_deps`, `build`)  
-- `dist/` – build output (runtime executable + bundled `app/`)  
-
-### Install & bootstrap
-
-1. Clone this repository:
-
-```bash
-git clone <your-repo-url> minrend
-cd minrend
+```
+Minrend/
+├── app/              # Your web app (HTML/JS/CSS)
+├── build_scripts/    # Build scripts & configurator UI
+│   └── configurator/ # Web-based build configurator
+├── src/              # Runtime source code
+│   ├── minrend.h     # Public API header
+│   └── platform/     # Platform-specific implementations
+├── third_party/      # Dependencies (auto-downloaded)
+├── minrend.js        # Development server
+└── Makefile
 ```
 
-2. (Optional) Manually bootstrap toolchains and deps:
+## Quick Start
+
+### 1. Start the configurator
 
 ```bash
-./scripts/bootstrap_deps
+node minrend.js
 ```
 
-> On Windows, you can also use `scripts\bootstrap_deps` or `scripts\bootstrap_deps.cmd`.
-> The unified scripts work on both Windows and Unix.
+This opens the configurator UI in your browser at `http://localhost:4173/`.
 
-### Create your app
+### 2. Build from command line
+
+```bash
+# Unix/macOS/Git Bash
+./build_scripts/build
+
+# Windows
+build_scripts\build.cmd
+```
+
+## Create Your App
 
 1. Put your web sources in `app/`:
    - `app/index.html` – main HTML file  
@@ -62,37 +66,17 @@ cd minrend
    - `requestAnimationFrame`, `performance.now`  
    - `fetch` (basic `http://` support)  
 
-### Build the runtime + app
+## Build Output
 
-- **Unix/macOS:**
+After building:
 
-```bash
-./scripts/build
-```
-
-- **Windows:**
-
-```bat
-scripts\build
-```
-
-or
-
-```bat
-scripts\build.cmd
-```
-
-> The unified `scripts/build` script works on both Windows and Unix.
-
-What you get:
-
-- `dist/minrend` or `dist/minrend.exe` – the Minrend runtime executable  
+- `dist/minrend` (Unix) or `dist/minrend.exe` (Windows) – the runtime executable  
 - `dist/app/` – copied from your root `app/` directory  
 
 You can distribute `dist/` as a portable package: run the binary next to the
 `app/` folder on any supported OS.
 
-### Run your app from source (dev)
+## Run Your App (Dev Mode)
 
 For rapid iteration you can also run directly from the project root (after building):
 
@@ -101,10 +85,9 @@ For rapid iteration you can also run directly from the project root (after build
 ./minrend app/index.html app/main.js
 ```
 
-On Windows PowerShell/cmd, run `minrend.exe` from the build directory after
-using `scripts\build.cmd`.
+On Windows PowerShell/cmd, run `minrend.exe` from the build directory.
 
-### Status
+## Status
 
 Minrend is **experimental** and intentionally small:
 

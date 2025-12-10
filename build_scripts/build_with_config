@@ -1,0 +1,93 @@
+:<<BASH_SECTION_START
+@echo off
+REM ----------------------- bash/batch polyglot file. ------------------------
+REM  ----------- The batch front: re-executes this file under Bash -----------
+REM  - Implemented using the here-doc technique, combined with a batch label -
+REM  --- Command.com requires a batch script to use extension .bat or .cmd ---
+REM  ------ WARNING - THIS FILE MUST BE SAVED WITH LF LINE ENDINGS ONLY ------
+REM  -------------------------> See .gitattributes! <-------------------------
+
+call "%~dp0execute_as_bash.bat" "%~f0" %*
+exit /b %ERRORLEVEL%
+
+BASH_SECTION_START
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Unified build-with-config script
+# --------------------------------
+# Wrapper around scripts/build that:
+#   - Loads a simple key=value build config file (if present)
+#   - Runs the normal build
+#   - Renames the output executable and swaps in the configured app directory
+#
+# Usage:
+#   ./build_scripts/build_with_config [path/to/build.config]
+#   or on Windows: build_scripts\build_with_config
+# If no config path is provided, ./build.config in the repo root is used.
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+CONFIG_FILE="${1:-$ROOT/build.config}"
+
+APP_DIR="${APP_DIR:-app}"
+OUT_NAME="${OUT_NAME:-minrend}"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  echo "[INFO] Loading build config from $CONFIG_FILE"
+  # Read config file (key=value format, # for comments)
+  while IFS='=' read -r key value || [[ -n "$key" ]]; do
+    # Skip comments and empty lines
+    [[ "$key" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${key// }" ]] && continue
+    
+    # Remove leading/trailing whitespace
+    key="${key%"${key##*[![:space:]]}"}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    
+    # Set variable if key is not empty
+    if [[ -n "$key" ]]; then
+      export "$key=$value"
+    fi
+  done < "$CONFIG_FILE"
+  
+  # Override with exported variables
+  APP_DIR="${APP_DIR:-app}"
+  OUT_NAME="${OUT_NAME:-minrend}"
+else
+  echo "[INFO] No build config found at $CONFIG_FILE, using defaults."
+fi
+
+echo "[INFO] Using APP_DIR=$APP_DIR"
+echo "[INFO] Using OUT_NAME=$OUT_NAME"
+
+echo "[INFO] Running base build (build_scripts/build)..."
+"$ROOT/build_scripts/build"
+
+# Handle output executable renaming
+EXE_EXT=""
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+  EXE_EXT=".exe"
+fi
+
+if [[ -f "$ROOT/dist/minrend$EXE_EXT" ]]; then
+  if [[ "$OUT_NAME" != "minrend" ]]; then
+    cp "$ROOT/dist/minrend$EXE_EXT" "$ROOT/dist/${OUT_NAME}${EXE_EXT}"
+    echo "[INFO] Copied dist/minrend${EXE_EXT} to dist/${OUT_NAME}${EXE_EXT}"
+  else
+    echo "[INFO] Keeping default executable name dist/minrend${EXE_EXT}"
+  fi
+else
+  echo "[WARN] dist/minrend${EXE_EXT} not found after base build."
+fi
+
+# Copy app directory
+if [[ -d "$ROOT/$APP_DIR" ]]; then
+  rm -rf "$ROOT/dist/app"
+  cp -R "$ROOT/$APP_DIR" "$ROOT/dist/app"
+  echo "[INFO] Copied $APP_DIR/ into dist/app"
+else
+  echo "[WARN] App directory \"$APP_DIR\" not found; leaving existing dist/app (if any)."
+fi
+

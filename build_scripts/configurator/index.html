@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Minrend Build Configurator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <h1>Minrend Build Configurator</h1>
+        <p>Configure and build Minrend from your browser. Dependencies will be downloaded automatically if needed.</p>
+      </header>
+
+      <section class="card">
+        <section class="step">
+          <h2>Build Settings</h2>
+          <p class="step-subtitle">
+            Configure your build options. The build process will automatically
+            bootstrap dependencies (Cosmopolitan toolchain, QuickJS, sokol) if they're not already present.
+          </p>
+          <p class="step-meta">
+            Build host OS:
+            <span id="osLabel" class="pill pill--os">Detecting&hellip;</span>
+          </p>
+          <form id="config-form">
+            <div class="field">
+              <label for="appDir">App directory</label>
+              <input
+                id="appDir"
+                name="appDir"
+                type="text"
+                value="app"
+                autocomplete="off"
+              />
+              <p class="field-help">
+                Relative to the Minrend project root. Contains your HTML/JS/CSS files.
+                Will be embedded into the final executable.
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="outName">Output executable name</label>
+              <input
+                id="outName"
+                name="outName"
+                type="text"
+                value="minrend"
+                autocomplete="off"
+              />
+              <p class="field-help">
+                Base name of the runtime executable in <code>dist/</code>. On
+                Windows, <code>.exe</code> extension is added automatically.
+              </p>
+            </div>
+
+            <div class="field field--checkbox">
+              <label class="checkbox-label">
+                <input type="checkbox" id="enableSokol" checked />
+                <span>Enable sokol multi-platform graphics</span>
+              </label>
+              <p class="field-help">
+                Builds with D3D11 (Windows) and OpenGL (Linux) support.
+                The executable automatically detects the platform at runtime.
+              </p>
+            </div>
+          </form>
+        </section>
+
+        <section class="step">
+          <h2>Build Minrend</h2>
+          <p class="step-subtitle">
+            Click to save settings and run the build. This will:
+          </p>
+          <ul class="build-steps-list">
+            <li>Download Cosmopolitan toolchain (~14MB) if not present</li>
+            <li>Clone QuickJS and other dependencies if needed</li>
+            <li>Compile sokol shims for Windows + Linux</li>
+            <li>Build the application and output to <code>dist/</code></li>
+          </ul>
+          <div class="actions actions--step">
+            <button type="button" id="runBuildBtn">Run build</button>
+          </div>
+          <section class="preview preview--build preview--log">
+            <div class="log-header">
+              <h3>Build log</h3>
+              <button type="button" id="copyLogBtn" class="btn-copy" title="Copy to clipboard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre id="buildLog">(checking dependencies...)</pre>
+          </section>
+        </section>
+      </section>
+
+      <footer class="page-footer">
+        <p>
+          Minrend uses <a href="https://github.com/jart/cosmopolitan" target="_blank">Cosmopolitan Libc</a>
+          to create cross-platform executables and
+          <a href="https://github.com/floooh/sokol" target="_blank">sokol</a> for graphics.
+        </p>
+      </footer>
+    </main>
+
+    <script src="main.js"></script>
+  </body>
+</html>

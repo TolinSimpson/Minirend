@@ -1,10 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <SDL.h>
+#include <time.h>
 
 #include "minrend.h"
+
+/* Cross-platform timer using clock_gettime (works with Cosmopolitan) */
+static uint32_t get_ticks_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+}
 
 #include "quickjs.h"
 
@@ -214,7 +220,7 @@ js_cancelAnimationFrame(JSContext *ctx, JSValueConst this_val,
 /* Called once per frame from the host main loop. */
 static void
 minrend_tick_animation(JSContext *ctx) {
-    uint32_t now_ms = SDL_GetTicks();
+    uint32_t now_ms = get_ticks_ms();
     double   now    = (double)now_ms;
 
     RAFCallback *cb = g_raf_head;
@@ -238,7 +244,7 @@ js_performance_now(JSContext *ctx, JSValueConst this_val,
     (void)this_val;
     (void)argc;
     (void)argv;
-    double now = (double)SDL_GetTicks();
+    double now = (double)get_ticks_ms();
     return JS_NewFloat64(ctx, now);
 }
 

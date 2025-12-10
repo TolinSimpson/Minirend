@@ -1,11 +1,7 @@
 # Minrend / Cosmopolitan runtime – Git ignore rules
 
-# Toolchains and vendored binaries
-cosmocc/
-
-# Third-party libraries fetched/bootstrapped locally
-third_party/quickjs/
-third_party/modest/
+# Third-party libraries and toolchains (fetched/bootstrapped by build scripts)
+third_party/
 
 # Build artifacts
 minrend

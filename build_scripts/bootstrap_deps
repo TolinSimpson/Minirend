@@ -1,0 +1,165 @@
+:<<BASH_SECTION_START
+@echo off
+REM ----------------------- bash/batch polyglot file. ------------------------
+REM  ----------- The batch front: re-executes this file under Bash -----------
+REM  - Implemented using the here-doc technique, combined with a batch label -
+REM  --- Command.com requires a batch script to use extension .bat or .cmd ---
+REM  ------ WARNING - THIS FILE MUST BE SAVED WITH LF LINE ENDINGS ONLY ------
+REM  -------------------------> See .gitattributes! <-------------------------
+
+call "%~dp0execute_as_bash.bat" "%~f0" %*
+exit /b %ERRORLEVEL%
+
+BASH_SECTION_START
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Unified bootstrap script for Minrend dependencies
+# -------------------------------------------------
+# This script:
+#   - Downloads Cosmopolitan's cosmocc toolchain if missing
+#   - Clones QuickJS and Modest into third_party/
+#
+# Usage:
+#   ./build_scripts/bootstrap_deps
+#   or on Windows: build_scripts\bootstrap_deps
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+echo "==> Project root: $ROOT"
+
+COSMO_DIR="$ROOT/third_party/cosmocc"
+COSMO_BIN="$COSMO_DIR/bin/cosmocc"
+
+if [[ -f "$COSMO_BIN" ]] || [[ -f "$COSMO_BIN.exe" ]]; then
+  echo "==> Cosmopolitan toolchain already present at $COSMO_BIN"
+else
+  echo "==> [STAGE] Downloading cosmocc"
+  echo "==> Cosmopolitan toolchain not found; downloading cosmocc (~14MB)..."
+  COSMO_URL="https://cosmo.zip/pub/cosmocc/cosmocc.zip"
+  TMP_ZIP="$ROOT/third_party/cosmocc.zip"
+  mkdir -p "$ROOT/third_party"
+
+  # Download using available tool (silent mode - UI shows progress bar)
+  if command -v curl >/dev/null 2>&1; then
+    echo "==> Using curl to download (this may take a minute)..."
+    curl -sS -L -o "$TMP_ZIP" "$COSMO_URL" || {
+      echo "ERROR: Failed to download cosmocc.zip"
+      exit 1
+    }
+    echo "==> Download complete."
+  elif command -v wget >/dev/null 2>&1; then
+    echo "==> Using wget to download (this may take a minute)..."
+    wget -q -O "$TMP_ZIP" "$COSMO_URL" || {
+      echo "ERROR: Failed to download cosmocc.zip"
+      exit 1
+    }
+    echo "==> Download complete."
+  elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    echo "==> Using PowerShell to download (this may take a minute)..."
+    powershell -NoLogo -NoProfile -Command "
+      \$ProgressPreference = 'SilentlyContinue'
+      Invoke-WebRequest -Uri '$COSMO_URL' -OutFile '$TMP_ZIP' -UseBasicParsing
+    " || {
+      echo "ERROR: Failed to download cosmocc.zip"
+      exit 1
+    }
+    echo "==> Download complete."
+  else
+    echo "ERROR: neither curl nor wget is available; please download cosmocc.zip"
+    echo "from $COSMO_URL and unzip it into $COSMO_DIR manually."
+    exit 1
+  fi
+
+  echo "==> [STAGE] Extracting toolchain"
+  echo "==> Extracting cosmocc..."
+  mkdir -p "$COSMO_DIR"
+  
+  # Extract using available tool
+  if command -v unzip >/dev/null 2>&1; then
+    echo "==> Extracting using unzip..."
+    unzip -q "$TMP_ZIP" -d "$COSMO_DIR"
+  elif command -v 7z >/dev/null 2>&1; then
+    echo "==> Extracting using 7z..."
+    7z x "$TMP_ZIP" -o"$COSMO_DIR" >/dev/null
+  elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    echo "==> Extracting using PowerShell..."
+    powershell -NoLogo -NoProfile -Command "Expand-Archive -Path '$TMP_ZIP' -DestinationPath '$COSMO_DIR' -Force" || {
+      echo "ERROR: Failed to extract cosmocc.zip. Please extract it manually."
+      exit 1
+    }
+  else
+    echo "ERROR: No extraction tool available (unzip, 7z, or PowerShell)"
+    exit 1
+  fi
+  
+  rm -f "$TMP_ZIP"
+
+  if [[ ! -f "$COSMO_BIN" ]] && [[ ! -f "$COSMO_BIN.exe" ]]; then
+    echo "ERROR: cosmocc binary not found after extraction."
+    exit 1
+  fi
+
+  echo "==> Cosmopolitan toolchain installed to $COSMO_DIR"
+fi
+
+# Remove legacy cosmocc location if it exists
+if [[ -d "$ROOT/cosmocc" ]]; then
+  echo "==> Removing legacy cosmocc directory from project root..."
+  rm -rf "$ROOT/cosmocc"
+fi
+
+export PATH="$COSMO_DIR/bin:$PATH"
+echo "==> PATH updated to include Cosmopolitan bin directory."
+
+echo "==> [STAGE] Cloning dependencies"
+mkdir -p "$ROOT/third_party"
+cd "$ROOT/third_party"
+
+if [[ -d quickjs ]]; then
+  echo "==> QuickJS already present in third_party/quickjs"
+else
+  echo "==> Cloning QuickJS into third_party/quickjs..."
+  git clone --depth 1 https://github.com/bellard/quickjs.git quickjs
+fi
+
+if [[ -d modest ]]; then
+  echo "==> Modest already present in third_party/modest"
+else
+  echo "==> Cloning Modest into third_party/modest..."
+  git clone --depth 1 https://github.com/lexborisov/Modest.git modest
+fi
+
+# Check if sokol headers exist
+if [[ -d sokol ]]; then
+  echo "==> Sokol headers already present in third_party/sokol"
+else
+  echo "==> Downloading sokol headers..."
+  mkdir -p sokol
+  cd sokol
+  # Download individual header files (they're single-header libraries)
+  for header in sokol_app.h sokol_gfx.h sokol_glue.h; do
+    if [[ ! -f "$header" ]]; then
+      if command -v curl >/dev/null 2>&1; then
+        curl -sL -o "$header" "https://raw.githubusercontent.com/floooh/sokol/master/$header"
+      elif command -v wget >/dev/null 2>&1; then
+        wget -q -O "$header" "https://raw.githubusercontent.com/floooh/sokol/master/$header"
+      fi
+    fi
+  done
+  cd ..
+fi
+
+cd "$ROOT"
+
+echo
+echo "==> [STAGE] Dependencies ready"
+echo "All core third-party dependencies are prepared:"
+echo "  - Cosmopolitan toolchain: $COSMO_BIN"
+echo "  - QuickJS: $ROOT/third_party/quickjs"
+echo "  - Modest:  $ROOT/third_party/modest"
+echo "  - Sokol:   $ROOT/third_party/sokol"
+echo
+echo "Ready to build. Run: ./scripts/build"
+

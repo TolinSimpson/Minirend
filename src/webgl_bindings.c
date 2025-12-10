@@ -1,7 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <SDL_opengl.h>
+/* OpenGL types - sokol_gfx handles the actual GL calls */
+typedef unsigned int GLenum;
+typedef unsigned int GLuint;
+typedef int GLint;
+typedef int GLsizei;
+typedef float GLfloat;
+typedef double GLclampd;
+typedef unsigned char GLboolean;
+typedef void GLvoid;
 
 #include "minrend.h"
 #include "quickjs.h"
