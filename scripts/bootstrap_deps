@@ -1,0 +1,110 @@
+:<<BASH_SECTION_START
+@echo off
+REM ----------------------- bash/batch polyglot file. ------------------------
+REM  ----------- The batch front: re-executes this file under Bash -----------
+REM  - Implemented using the here-doc technique, combined with a batch label -
+REM  --- Command.com requires a batch script to use extension .bat or .cmd ---
+REM  ------ WARNING - THIS FILE MUST BE SAVED WITH LF LINE ENDINGS ONLY ------
+REM  -------------------------> See .gitattributes! <-------------------------
+
+call "%~dp0..\polyglot\execute_as_bash.bat" "%~f0" %*
+exit /b %ERRORLEVEL%
+
+BASH_SECTION_START
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Unified bootstrap script for Minrend dependencies
+# -------------------------------------------------
+# This script:
+#   - Downloads Cosmopolitan's cosmocc toolchain if missing
+#   - Clones QuickJS and Modest into third_party/
+#
+# Usage:
+#   ./scripts/bootstrap_deps
+#   or on Windows: scripts\bootstrap_deps
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+echo "==> Project root: $ROOT"
+
+COSMO_DIR="$ROOT/cosmocc"
+COSMO_BIN="$COSMO_DIR/bin/cosmocc"
+
+if [[ -f "$COSMO_BIN" ]] || [[ -f "$COSMO_BIN.exe" ]]; then
+  echo "==> Cosmopolitan toolchain already present at $COSMO_BIN"
+else
+  echo "==> Cosmopolitan toolchain not found; downloading cosmocc..."
+  COSMO_URL="https://cosmo.zip/pub/cosmocc/cosmocc.zip"
+  TMP_ZIP="$ROOT/cosmocc.zip"
+
+  # Download using available tool
+  if command -v curl >/dev/null 2>&1; then
+    curl -L -o "$TMP_ZIP" "$COSMO_URL"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -O "$TMP_ZIP" "$COSMO_URL"
+  else
+    echo "ERROR: neither curl nor wget is available; please download cosmocc.zip"
+    echo "from $COSMO_URL and unzip it into $COSMO_DIR manually."
+    exit 1
+  fi
+
+  mkdir -p "$COSMO_DIR"
+  
+  # Extract using available tool
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q "$TMP_ZIP" -d "$COSMO_DIR"
+  elif command -v 7z >/dev/null 2>&1; then
+    7z x "$TMP_ZIP" -o"$COSMO_DIR" >/dev/null
+  elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    # On Windows, try PowerShell Expand-Archive
+    powershell -NoLogo -NoProfile -Command "Expand-Archive -Path '$TMP_ZIP' -DestinationPath '$COSMO_DIR' -Force" || {
+      echo "ERROR: Failed to extract cosmocc.zip. Please extract it manually."
+      exit 1
+    }
+  else
+    echo "ERROR: No extraction tool available (unzip, 7z, or PowerShell)"
+    exit 1
+  fi
+  
+  rm -f "$TMP_ZIP"
+
+  if [[ ! -f "$COSMO_BIN" ]] && [[ ! -f "$COSMO_BIN.exe" ]]; then
+    echo "ERROR: cosmocc binary not found after extraction."
+    exit 1
+  fi
+
+  echo "==> Cosmopolitan toolchain installed to $COSMO_DIR"
+fi
+
+export PATH="$COSMO_DIR/bin:$PATH"
+echo "==> PATH updated to include Cosmopolitan bin directory."
+
+mkdir -p "$ROOT/third_party"
+cd "$ROOT/third_party"
+
+if [[ -d quickjs ]]; then
+  echo "==> QuickJS already present in third_party/quickjs"
+else
+  echo "==> Cloning QuickJS into third_party/quickjs..."
+  git clone https://github.com/bellard/quickjs.git quickjs
+fi
+
+if [[ -d modest ]]; then
+  echo "==> Modest already present in third_party/modest"
+else
+  echo "==> Cloning Modest into third_party/modest..."
+  git clone https://github.com/lexborisov/Modest.git modest
+fi
+
+echo
+echo "All core third-party dependencies are prepared:"
+echo "  - Cosmopolitan toolchain: $COSMO_BIN"
+echo "  - QuickJS: $ROOT/third_party/quickjs"
+echo "  - Modest:  $ROOT/third_party/modest"
+echo
+echo "Next steps:"
+echo "  1. Ensure SDL2 + OpenGL dev packages are installed on your system."
+echo "  2. From the project root, run: ./scripts/build"
+

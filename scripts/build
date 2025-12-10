@@ -1,0 +1,255 @@
+:<<BASH_SECTION_START
+@echo off
+REM ----------------------- bash/batch polyglot file. ------------------------
+REM  ----------- The batch front: re-executes this file under Bash -----------
+REM  - Implemented using the here-doc technique, combined with a batch label -
+REM  --- Command.com requires a batch script to use extension .bat or .cmd ---
+REM  ------ WARNING - THIS FILE MUST BE SAVED WITH LF LINE ENDINGS ONLY ------
+REM  -------------------------> See .gitattributes! <-------------------------
+
+call "%~dp0..\polyglot\execute_as_bash.bat" "%~f0" %*
+exit /b %ERRORLEVEL%
+
+BASH_SECTION_START
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Unified Minrend build script (works on Windows and Unix)
+# ---------------------------------------------------------
+# This script:
+#   - Ensures Cosmopolitan's cosmocc toolchain is present (downloads if needed)
+#   - Ensures QuickJS and Modest are cloned into third_party
+#   - Builds the project using Cosmopolitan's make and outputs dist/minrend
+#
+# Usage:
+#   ./scripts/build [args...]
+#   or on Windows: scripts\build
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+echo "==> Building Minrend in $ROOT"
+
+# Bootstrap dependencies first
+if [[ -f "$ROOT/scripts/bootstrap_deps" ]]; then
+  echo "==> Bootstrapping dependencies..."
+  "$ROOT/scripts/bootstrap_deps"
+else
+  echo "ERROR: scripts/bootstrap_deps not found."
+  exit 1
+fi
+
+COSMO_DIR="$ROOT/cosmocc"
+COSMO_BIN="$COSMO_DIR/bin/cosmocc"
+COSMO_MAKE="$COSMO_DIR/bin/make"
+COSMO_CC="$COSMO_DIR/bin/x86_64-unknown-cosmo-cc"
+COSMO_AR="$COSMO_DIR/bin/x86_64-unknown-cosmo-ar"
+
+# Ensure .exe extensions exist on Windows (for APE binaries)
+if [[ -f "$COSMO_MAKE" && ! -f "$COSMO_MAKE.exe" ]]; then
+  cp "$COSMO_MAKE" "$COSMO_MAKE.exe" 2>/dev/null || true
+fi
+if [[ -f "$COSMO_CC" && ! -f "$COSMO_CC.exe" ]]; then
+  cp "$COSMO_CC" "$COSMO_CC.exe" 2>/dev/null || true
+fi
+if [[ -f "$COSMO_AR" && ! -f "$COSMO_AR.exe" ]]; then
+  cp "$COSMO_AR" "$COSMO_AR.exe" 2>/dev/null || true
+fi
+
+# Use .exe versions on Windows if available
+if [[ -f "$COSMO_MAKE.exe" ]]; then
+  COSMO_MAKE="$COSMO_MAKE.exe"
+fi
+
+if [[ ! -f "$COSMO_BIN" ]] && [[ ! -f "$COSMO_BIN.exe" ]]; then
+  echo "ERROR: Cosmopolitan compiler not found at $COSMO_BIN"
+  echo "Make sure bootstrap_deps completed successfully."
+  exit 1
+fi
+
+export PATH="$COSMO_DIR/bin:$PATH"
+
+# Determine number of parallel jobs
+if command -v nproc >/dev/null 2>&1; then
+  JOBS=$(nproc)
+elif command -v sysctl >/dev/null 2>&1; then
+  JOBS=$(sysctl -n hw.ncpu)
+else
+  JOBS=4
+fi
+
+echo "==> Running make with $JOBS parallel jobs..."
+
+# Cosmocc/cosmoar are shell scripts - need different handling per platform
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+  # On Windows, cosmo make can't execute shell scripts directly
+  # Use the actual GCC from cosmocc toolchain
+  CC_REAL="$COSMO_DIR/bin/x86_64-linux-cosmo-gcc"
+  AR_REAL="$COSMO_DIR/bin/x86_64-linux-cosmo-ar"
+  
+  # cosmocc adds special flags - we need to replicate them for raw GCC
+  # See cosmocc script for the original definitions
+  COSMO_INCLUDE="$COSMO_DIR/include"
+  COSMO_LIB="$COSMO_DIR/x86_64-linux-cosmo/lib"
+  
+  # Compiler flags
+  COSMO_CPPFLAGS="-fno-pie -nostdinc -isystem $COSMO_INCLUDE"
+  COSMO_CFLAGS="-fportcosmo -D__COSMOPOLITAN__ -D__COSMOCC__"
+  COSMO_PREDEF="-include libc/integral/normalize.inc"
+  export CFLAGS="$COSMO_CPPFLAGS $COSMO_CFLAGS $COSMO_PREDEF ${CFLAGS:-}"
+  
+  # Linker flags - replicate what cosmocc does for linking
+  # These are essential for producing a working Cosmopolitan executable
+  COSMO_LDFLAGS="-static -nostdlib -no-pie -fuse-ld=bfd"
+  COSMO_LDFLAGS="$COSMO_LDFLAGS -Wl,-z,noexecstack -Wl,-z,norelro -Wl,--gc-sections"
+  COSMO_LDFLAGS="$COSMO_LDFLAGS -L$COSMO_LIB -L$COSMO_DIR/x86_64-linux-cosmo/lib"
+  COSMO_LDFLAGS="$COSMO_LDFLAGS -Wl,-T,$COSMO_LIB/ape.lds"
+  COSMO_LDFLAGS="$COSMO_LDFLAGS -Wl,-z,common-page-size=4096 -Wl,-z,max-page-size=16384"
+  
+  # CRT files needed at start of link
+  COSMO_CRT="$COSMO_LIB/ape.o $COSMO_LIB/crt.o"
+  
+  # Linker flags and libraries (order matters for static linking!)
+  # Libraries are added to COSMO_EXTRA_LDLIBS which will be appended AFTER
+  # the object files and other libraries in the Makefile
+  # -ldl provides dynamic loading functions (dlopen, dlsym)
+  # -lc provides standard C library functions (printf, abort, etc.)
+  # -lcosmo provides WinMain and other essential Cosmopolitan functions
+  COSMO_EXTRA_LDLIBS="-ldl -lc -lcosmo"
+  
+  export LDFLAGS="$COSMO_CRT $COSMO_LDFLAGS ${LDFLAGS:-}"
+  export COSMO_EXTRA_LDLIBS
+else
+  CC_REAL="$COSMO_DIR/bin/cosmocc"
+  AR_REAL="$COSMO_DIR/bin/cosmoar"
+fi
+
+echo "==> CC=$CC_REAL"
+echo "==> AR=$AR_REAL"
+"$COSMO_MAKE" -j"$JOBS" CC="$CC_REAL" AR="$AR_REAL"
+
+# On Windows, convert ELF to APE format using fixupobj + apelink
+# This is needed because we bypassed the cosmocc wrapper which normally does this
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+  if [[ -f "$ROOT/minrend" ]]; then
+    FIXUPOBJ="$COSMO_DIR/bin/fixupobj"
+    APELINK="$COSMO_DIR/bin/apelink"
+    APE_LOADER="$COSMO_DIR/bin/ape-x86_64.elf"
+    
+    echo "==> Post-processing ELF with fixupobj..."
+    if [[ -f "$FIXUPOBJ" ]]; then
+      "$FIXUPOBJ" "$ROOT/minrend" || echo "Warning: fixupobj returned non-zero"
+    fi
+    
+    echo "==> Converting ELF to APE format..."
+    if [[ -f "$APELINK" ]]; then
+      # Create APE with embedded loader for Windows/Linux/Mac compatibility
+      mv "$ROOT/minrend" "$ROOT/minrend.elf"
+      "$APELINK" -l "$APE_LOADER" -o "$ROOT/minrend" "$ROOT/minrend.elf" || {
+        echo "Warning: apelink failed, trying without loader..."
+        "$APELINK" -o "$ROOT/minrend" "$ROOT/minrend.elf" || {
+          echo "Warning: apelink failed, keeping ELF format"
+          mv "$ROOT/minrend.elf" "$ROOT/minrend"
+        }
+      }
+      rm -f "$ROOT/minrend.elf"
+      echo "==> APE conversion complete"
+    else
+      echo "WARNING: apelink not found, executable may not run on Windows"
+    fi
+  fi
+fi
+
+mkdir -p "$ROOT/dist"
+
+if [[ -f "$ROOT/minrend" ]]; then
+  # Create ZIP of app directory contents for embedding
+  # Important: zip the contents, not the directory itself, so paths are "index.html" not "app/index.html"
+  echo "==> Creating app.zip for embedding..."
+  if [[ -d "$ROOT/app" ]]; then
+    cd "$ROOT/app"
+    if command -v zip >/dev/null 2>&1; then
+      # Zip all contents of app/ directory (paths will be relative to app/, e.g., "index.html")
+      zip -r "$ROOT/app.zip" . >/dev/null 2>&1
+      if [[ $? -ne 0 ]]; then
+        echo "WARNING: Failed to create app.zip with zip command"
+        cd "$ROOT"
+        # Try using PowerShell on Windows
+        if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+          powershell -NoLogo -NoProfile -Command "Compress-Archive -Path 'app\*' -DestinationPath 'app.zip' -Force" 2>/dev/null || {
+            echo "WARNING: Could not create app.zip, app files will not be embedded"
+            rm -f "$ROOT/app.zip"
+          }
+        else
+          echo "WARNING: Could not create app.zip, app files will not be embedded"
+          rm -f "$ROOT/app.zip"
+        fi
+      fi
+    else
+      # Try PowerShell on Windows if zip not available
+      if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+        cd "$ROOT"
+        powershell -NoLogo -NoProfile -Command "Compress-Archive -Path 'app\*' -DestinationPath 'app.zip' -Force" 2>/dev/null || {
+          echo "WARNING: zip command not found and PowerShell failed, app files will not be embedded"
+          rm -f "$ROOT/app.zip"
+        }
+      else
+        echo "WARNING: zip command not found, app files will not be embedded"
+        rm -f "$ROOT/app.zip"
+      fi
+    fi
+    cd "$ROOT"
+  else
+    echo "WARNING: app/ directory not found, creating empty ZIP"
+    touch "$ROOT/app.zip"
+  fi
+  
+  # Append ZIP to executable for single-file distribution
+  if [[ -f "$ROOT/app.zip" ]]; then
+    echo "==> Embedding app.zip into executable..."
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+      # On Windows, use PowerShell or cmd to concatenate
+      if command -v powershell >/dev/null 2>&1; then
+        powershell -NoLogo -NoProfile -Command "Get-Content 'minrend','app.zip' -Raw | Set-Content 'minrend.zip' -NoNewline"
+        mv "$ROOT/minrend.zip" "$ROOT/minrend"
+      else
+        # Fallback: use cmd copy
+        copy /B "$ROOT\minrend" + "$ROOT\app.zip" "$ROOT\minrend" >nul 2>&1 || {
+          cat "$ROOT/minrend" "$ROOT/app.zip" > "$ROOT/minrend.tmp" && mv "$ROOT/minrend.tmp" "$ROOT/minrend"
+        }
+      fi
+      cp "$ROOT/minrend" "$ROOT/dist/minrend.exe"
+      echo "==> Built single-file executable: dist/minrend.exe"
+    else
+      # On Unix, use cat
+      cat "$ROOT/minrend" "$ROOT/app.zip" > "$ROOT/minrend.tmp"
+      mv "$ROOT/minrend.tmp" "$ROOT/minrend"
+      chmod +x "$ROOT/minrend"
+      cp "$ROOT/minrend" "$ROOT/dist/minrend"
+      echo "==> Built single-file executable: dist/minrend"
+    fi
+    
+    # Clean up temporary ZIP
+    rm -f "$ROOT/app.zip"
+  else
+    # Fallback: copy executable and app directory separately
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+      cp "$ROOT/minrend" "$ROOT/dist/minrend.exe"
+      echo "==> Built executable: dist/minrend.exe (app not embedded)"
+    else
+      cp "$ROOT/minrend" "$ROOT/dist/minrend"
+      echo "==> Built executable: dist/minrend (app not embedded)"
+    fi
+    
+    if [[ -d "$ROOT/app" ]]; then
+      rm -rf "$ROOT/dist/app"
+      cp -R "$ROOT/app" "$ROOT/dist/app"
+      echo "==> Copied app/ into dist/app (fallback mode)"
+    fi
+  fi
+else
+  echo "WARNING: 'minrend' executable not found in project root after build."
+fi
+
+echo "Build complete."
+

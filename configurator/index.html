@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Minrend Build Configurator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <h1>Minrend Build Configurator</h1>
+        <p>Configure and build Minrend from your browser. Dependencies will be downloaded automatically if needed.</p>
+      </header>
+
+      <section class="card">
+        <section class="step">
+          <h2>Build Settings</h2>
+          <p class="step-subtitle">
+            Configure your build options. The build process will automatically
+            bootstrap dependencies (Cosmopolitan toolchain, QuickJS, Modest) if they're not already present.
+          </p>
+          <p class="step-meta">
+            Build host OS:
+            <span id="osLabel" class="pill pill--os">Detecting&hellip;</span>
+          </p>
+          <form id="config-form">
+            <div class="field">
+              <label for="appDir">App directory</label>
+              <input
+                id="appDir"
+                name="appDir"
+                type="text"
+                value="app"
+                autocomplete="off"
+              />
+              <p class="field-help">
+                Relative to the Minrend project root. This folder will be copied
+                into <code>dist/app</code>.
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="outName">Output executable name</label>
+              <input
+                id="outName"
+                name="outName"
+                type="text"
+                value="minrend"
+                autocomplete="off"
+              />
+              <p class="field-help">
+                Base name of the runtime executable in <code>dist/</code>. On
+                Windows, <code>.exe</code> will be used automatically.
+              </p>
+            </div>
+          </form>
+        </section>
+
+        <section class="step">
+          <h2>Build Minrend</h2>
+          <p class="step-subtitle">
+            This will save your settings and run the build script. The build process
+            will automatically download dependencies if needed.
+          </p>
+          <div class="actions actions--step">
+            <button type="button" id="runBuildBtn">Run build</button>
+          </div>
+          <section class="preview preview--build preview--log">
+            <h3>Build log</h3>
+            <pre id="buildLog">(no build run yet)</pre>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="main.js"></script>
+  </body>
+  </html>
+
+

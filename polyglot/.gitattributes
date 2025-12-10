@@ -1,0 +1,18 @@
+
+# All .bat batch files must be saved using DOS/Windows default crlf fline endings.
+*.bat text eol=crlf
+
+# Force LF for Batch/Bash polyglot files (required for bash compatibility)
+polyglot.bat text eol=lf
+../scripts/x86_64-unknown-cosmo-cc text eol=lf
+../scripts/x86_64-unknown-cosmo-ar text eol=lf
+../scripts/build text eol=lf
+../scripts/bootstrap_deps text eol=lf
+../scripts/build_with_config text eol=lf
+
+# NOTE: If the file already exists in the repository, apply the rule and fix the working tree:
+#git add --renormalize polyglot.bat
+#git commit -m "Normalize line endings for polyglot.bat to LF"
+
+## (optional) rewrite the working copy from index to get LF immediately:
+#git checkout -- polyglot.bat

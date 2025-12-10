@@ -1,0 +1,135 @@
+:<<BASH_SECTION_START
+@echo off
+REM ----------------------- bash/batch polyglot file. ------------------------
+REM  ----------- The batch front: re-executes this file under Bash -----------
+REM  - Implemented using the here-doc technique, combined with a batch label -
+REM  --- Command.com requires a batch script to use extension .bat or .cmd ---
+REM  ------ WARNING - THIS FILE MUST BE SAVED WITH LF LINE ENDINGS ONLY ------
+REM  -------------------------> See .gitattributes! <-------------------------
+
+call "%~dp0..\polyglot\execute_as_bash.bat" "%~f0" %*
+exit /b %ERRORLEVEL%
+
+BASH_SECTION_START
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Bootstrap SDL2 runtime libraries
+# --------------------------------
+# Downloads SDL2 runtime DLLs for Windows so the executable can run.
+# On Linux/Mac, SDL2 should be installed via package manager.
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+SDL2_VERSION="2.30.9"
+SDL2_DIR="$ROOT/third_party/SDL2"
+DIST_DIR="$ROOT/dist"
+
+echo "==> Bootstrapping SDL2 runtime libraries..."
+
+# Detect platform
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    PLATFORM="windows"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    PLATFORM="macos"
+else
+    PLATFORM="linux"
+fi
+
+echo "==> Detected platform: $PLATFORM"
+
+case "$PLATFORM" in
+    windows)
+        # Check if DLLs already exist
+        if [[ -f "$DIST_DIR/SDL2.dll" ]]; then
+            echo "==> SDL2.dll already present in dist/"
+        else
+            echo "==> Downloading SDL2 runtime for Windows..."
+            
+            # SDL2 development package already has the DLLs
+            if [[ -f "$SDL2_DIR/lib/x64/SDL2.dll" ]]; then
+                echo "==> Copying SDL2.dll from third_party/SDL2..."
+                mkdir -p "$DIST_DIR"
+                cp "$SDL2_DIR/lib/x64/SDL2.dll" "$DIST_DIR/"
+                echo "==> SDL2.dll copied to dist/"
+            else
+                # Download if not present
+                SDL2_URL="https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}-win32-x64.zip"
+                TMP_ZIP="$ROOT/SDL2-runtime.zip"
+                
+                echo "==> Downloading from $SDL2_URL..."
+                if command -v curl >/dev/null 2>&1; then
+                    curl -L -o "$TMP_ZIP" "$SDL2_URL"
+                elif command -v wget >/dev/null 2>&1; then
+                    wget -O "$TMP_ZIP" "$SDL2_URL"
+                else
+                    echo "ERROR: Neither curl nor wget available"
+                    exit 1
+                fi
+                
+                mkdir -p "$DIST_DIR"
+                
+                # Extract SDL2.dll
+                if command -v unzip >/dev/null 2>&1; then
+                    unzip -j "$TMP_ZIP" "SDL2.dll" -d "$DIST_DIR"
+                else
+                    # Try PowerShell
+                    powershell -NoLogo -NoProfile -Command "
+                        Add-Type -AssemblyName System.IO.Compression.FileSystem
+                        \$zip = [System.IO.Compression.ZipFile]::OpenRead('$TMP_ZIP')
+                        \$entry = \$zip.Entries | Where-Object { \$_.Name -eq 'SDL2.dll' }
+                        [System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$entry, '$DIST_DIR/SDL2.dll', \$true)
+                        \$zip.Dispose()
+                    "
+                fi
+                
+                rm -f "$TMP_ZIP"
+                echo "==> SDL2.dll downloaded to dist/"
+            fi
+        fi
+        
+        echo ""
+        echo "SDL2 runtime is ready. The executable should now be able to run."
+        echo "Note: OpenGL support comes from your graphics driver (opengl32.dll)."
+        ;;
+        
+    macos)
+        echo "==> On macOS, install SDL2 via Homebrew:"
+        echo "    brew install sdl2"
+        echo ""
+        if command -v brew >/dev/null 2>&1; then
+            if brew list sdl2 >/dev/null 2>&1; then
+                echo "==> SDL2 is already installed via Homebrew"
+            else
+                read -p "Install SDL2 via Homebrew now? [y/N] " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    brew install sdl2
+                fi
+            fi
+        fi
+        ;;
+        
+    linux)
+        echo "==> On Linux, install SDL2 via your package manager:"
+        echo "    Ubuntu/Debian: sudo apt install libsdl2-2.0-0"
+        echo "    Fedora: sudo dnf install SDL2"
+        echo "    Arch: sudo pacman -S sdl2"
+        echo ""
+        # Check if SDL2 is installed
+        if ldconfig -p 2>/dev/null | grep -q libSDL2; then
+            echo "==> SDL2 appears to be installed"
+        elif [[ -f /usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0 ]]; then
+            echo "==> SDL2 appears to be installed"
+        else
+            echo "==> SDL2 does not appear to be installed"
+        fi
+        ;;
+esac
+
+echo ""
+echo "Bootstrap complete."
+
+
+
