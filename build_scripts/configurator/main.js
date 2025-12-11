@@ -1,7 +1,6 @@
 (() => {
   const appDirInput = document.getElementById("appDir");
   const outNameInput = document.getElementById("outName");
-  const enableSokolInput = document.getElementById("enableSokol");
   const runBuildBtn = document.getElementById("runBuildBtn");
   const buildLog = document.getElementById("buildLog");
   const osLabel = document.getElementById("osLabel");
@@ -89,8 +88,7 @@
   function getCurrentValues() {
     const appDir = (appDirInput.value || "app").trim() || "app";
     const outName = (outNameInput.value || "minrend").trim() || "minrend";
-    const sokol = enableSokolInput ? enableSokolInput.checked : true;
-    return { appDir, outName, sokol };
+    return { appDir, outName };
   }
 
   /**
@@ -295,8 +293,8 @@
    * Run build with streaming output support
    */
   async function runBuild() {
-    const { appDir, outName, sokol } = getCurrentValues();
-    const payload = { appDir, outName, sokol };
+    const { appDir, outName } = getCurrentValues();
+    const payload = { appDir, outName };
 
     buildLog.textContent = "";
     runBuildBtn.disabled = true;
