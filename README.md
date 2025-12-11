@@ -2,16 +2,6 @@
 
 > ⚠️ **EXPERIMENTAL** – This project is under active development and APIs may change without notice. Use at your own risk.
 
----
-
-## Other Projects
-
-### [Minibun](https://github.com/TolinSimpson/Minibun)
-A tiny javascript bundler implementation.
-
-### [minima-js](https://github.com/TolinSimpson/minima-js)
-A tiny, fully-featured, zero-dependency JavaScript framework. 
-
 - **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
 - **Sokol** – cross‑platform graphics abstraction (handles D3D11, Metal, OpenGL, WebGPU backends automatically)  
 - **QuickJS** – embeddable JavaScript engine  
@@ -106,3 +96,13 @@ minirend is **experimental** and intentionally small:
 - Networking and storage are thin wrappers over the host OS via Cosmopolitan  
 
 See `src/` and `Makefile` for deeper integration details.
+
+---
+
+## Other Projects
+
+### [Minibun](https://github.com/TolinSimpson/Minibun)
+A tiny javascript bundler implementation.
+
+### [minima-js](https://github.com/TolinSimpson/minima-js)
+A tiny, fully-featured, zero-dependency JavaScript framework. 
