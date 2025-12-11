@@ -1,10 +1,21 @@
 # minirend – Cross‑Platform Web App Runtime
 
+> ⚠️ **EXPERIMENTAL** – This project is under active development and APIs may change without notice. Use at your own risk.
+
+---
+
+## Other Projects
+
+### [Minibun](https://github.com/TolinSimpson/Minibun)
+A tiny javascript bundler implementation.
+
+### [minima-js](https://github.com/TolinSimpson/minima-js)
+A tiny, fully-featured, zero-dependency JavaScript framework. 
 
 - **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
-- **Sokol** – cross‑platform graphics (D3D11 on Windows, OpenGL on Linux)  
+- **Sokol** – cross‑platform graphics abstraction (handles D3D11, Metal, OpenGL, WebGPU backends automatically)  
 - **QuickJS** – embeddable JavaScript engine  
-- **Modest** – HTML/CSS rendering (planned integration)  
+- **Modest** – HTML/CSS rendering (planned integration, needs input detection)  
 
 You build **one native binary** that:
 
@@ -91,7 +102,7 @@ On Windows PowerShell/cmd, run `minirend.exe` from the build directory.
 minirend is **experimental** and intentionally small:
 
 - DOM APIs are minimal and focused on common UI + three.js use cases  
-- WebGL is exposed as a thin layer over OpenGL ES‑style calls and will evolve  
+- WebGL is exposed via Sokol's cross-platform graphics abstraction  
 - Networking and storage are thin wrappers over the host OS via Cosmopolitan  
 
 See `src/` and `Makefile` for deeper integration details.
