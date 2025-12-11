@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "minrend.h"
+#include "minirend.h"
 #include "quickjs.h"
 
 /* Simple localStorage/sessionStorage implementation.
@@ -63,7 +63,7 @@ js_localStorage_flush(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_storage_register(JSContext *ctx) {
+minirend_storage_register(JSContext *ctx) {
     JSValue global_obj = JS_GetGlobalObject(ctx);
 
     /* Expose a helper to flush serialized storage to disk. */

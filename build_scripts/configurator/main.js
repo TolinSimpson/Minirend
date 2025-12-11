@@ -87,7 +87,7 @@
 
   function getCurrentValues() {
     const appDir = (appDirInput.value || "app").trim() || "app";
-    const outName = (outNameInput.value || "minrend").trim() || "minrend";
+    const outName = (outNameInput.value || "minirend").trim() || "minirend";
     return { appDir, outName };
   }
 
@@ -136,10 +136,10 @@
     if (lower.includes("sokol") && (lower.includes("building") || lower.includes("compiling") || lower.includes(".o:"))) {
       return BUILD_STAGES.COMPILING_SOKOL;
     }
-    if (lower.includes("running make") || lower.includes("building minrend")) {
+    if (lower.includes("running make") || lower.includes("building minirend")) {
       return BUILD_STAGES.COMPILING_APP;
     }
-    if (lower.includes("linking") || lower.includes("-o minrend") || lower.includes("apelink")) {
+    if (lower.includes("linking") || lower.includes("-o minirend") || lower.includes("apelink")) {
       return BUILD_STAGES.LINKING;
     }
     if (lower.includes("creating app.zip") || lower.includes("embedding") || lower.includes("dist/")) {

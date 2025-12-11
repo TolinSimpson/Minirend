@@ -1,6 +1,5 @@
-# Minrend – Cross‑Platform Web App Runtime
+# minirend – Cross‑Platform Web App Runtime
 
-Minrend is a **minimal Electron‑style runtime** built in C with:
 
 - **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
 - **Sokol** – cross‑platform graphics (D3D11 on Windows, OpenGL on Linux)  
@@ -23,15 +22,15 @@ You build **one native binary** that:
 ## Folder Layout
 
 ```
-Minrend/
+minirend/
 ├── app/              # Your web app (HTML/JS/CSS)
 ├── build_scripts/    # Build scripts & configurator UI
 │   └── configurator/ # Web-based build configurator
 ├── src/              # Runtime source code
-│   ├── minrend.h     # Public API header
+│   ├── minirend.h    # Public API header
 │   └── platform/     # Platform-specific implementations
 ├── third_party/      # Dependencies (auto-downloaded)
-├── minrend.js        # Development server
+├── minirend.js       # Development server
 └── Makefile
 ```
 
@@ -40,7 +39,7 @@ Minrend/
 ### 1. Start the configurator
 
 ```bash
-node minrend.js
+node minirend.js
 ```
 
 This opens the configurator UI in your browser at `http://localhost:4173/`.
@@ -70,7 +69,7 @@ build_scripts\build.cmd
 
 After building:
 
-- `dist/minrend` (Unix) or `dist/minrend.exe` (Windows) – the runtime executable  
+- `dist/minirend` (Unix) or `dist/minirend.exe` (Windows) – the runtime executable  
 - `dist/app/` – copied from your root `app/` directory  
 
 You can distribute `dist/` as a portable package: run the binary next to the
@@ -81,15 +80,15 @@ You can distribute `dist/` as a portable package: run the binary next to the
 For rapid iteration you can also run directly from the project root (after building):
 
 ```bash
-./minrend                 # Unix/macOS/Git Bash
-./minrend app/index.html app/main.js
+./minirend                 # Unix/macOS/Git Bash
+./minirend app/index.html app/main.js
 ```
 
-On Windows PowerShell/cmd, run `minrend.exe` from the build directory.
+On Windows PowerShell/cmd, run `minirend.exe` from the build directory.
 
 ## Status
 
-Minrend is **experimental** and intentionally small:
+minirend is **experimental** and intentionally small:
 
 - DOM APIs are minimal and focused on common UI + three.js use cases  
 - WebGL is exposed as a thin layer over OpenGL ES‑style calls and will evolve  

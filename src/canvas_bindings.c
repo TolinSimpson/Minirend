@@ -1,4 +1,4 @@
-#include "minrend.h"
+#include "minirend.h"
 #include "quickjs.h"
 
 /* Minimal Canvas 2D API stub. For three.js we mostly rely on WebGL;
@@ -17,7 +17,7 @@ js_canvas_getContext_2d(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_canvas_register(JSContext *ctx, MinrendApp *app) {
+minirend_canvas_register(JSContext *ctx, MinirendApp *app) {
     (void)app;
 
     JSValue global_obj = JS_GetGlobalObject(ctx);

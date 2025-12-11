@@ -1,5 +1,5 @@
 /**
- * Minrend Configurator Server
+ * minirend Configurator Server
  * 
  * Serves the configurator UI and handles build requests.
  */
@@ -105,7 +105,7 @@ function runBuild(config, onData, onDone) {
     ...process.env,
     SOKOL: config.sokol ? '1' : '0',
     APP_DIR: config.appDir || 'app',
-    OUT_NAME: config.outName || 'minrend',
+    OUT_NAME: config.outName || 'minirend',
   };
   
   console.log(`Running build with SOKOL=${env.SOKOL}, using ${isWsl ? 'WSL' : 'bash'}`);
@@ -296,7 +296,7 @@ function handleRequest(req, res) {
 // Start server
 const server = http.createServer(handleRequest);
 server.listen(PORT, () => {
-  console.log(`Minrend Configurator running at http://localhost:${PORT}`);
+  console.log(`minirend Configurator running at http://localhost:${PORT}`);
   console.log(`Project root: ${ROOT}`);
   console.log(`Configurator UI: ${CONFIGURATOR_DIR}`);
   console.log('');

@@ -1,5 +1,5 @@
 @echo off
-REM Minrend build-with-config script (wrapper for unified build_with_config)
+REM minirend build-with-config script (wrapper for unified build_with_config)
 REM ------------------------------------------------------------------------
 REM This script is a compatibility wrapper that calls the unified build_with_config script.
 REM The unified script (scripts/build_with_config) works on both Windows and Unix.

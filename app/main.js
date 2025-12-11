@@ -1,7 +1,7 @@
-// Main JavaScript entry for your Minrend-powered app.
+// Main JavaScript entry for your minirend-powered app.
 // This is the file you should edit to implement your web UI / logic.
 
-console.log("Minrend app starting up from app/main.js...");
+console.log("minirend app starting up from app/main.js...");
 
 // localStorage demo: count how many times the app was launched.
 let launches = parseInt(localStorage.getItem("launchCount") || "0", 10);
@@ -78,7 +78,7 @@ function createProgressBar(container, label = "Downloading cosmocc...") {
 }
 
 // Export progress bar utility for use in bootstrap UI
-window.MinrendProgressBar = createProgressBar;
+window.MinirendProgressBar = createProgressBar;
 
 // requestAnimationFrame demo: simple ticking timer for a couple of seconds.
 let start = performance.now();

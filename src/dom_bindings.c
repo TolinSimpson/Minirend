@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "minrend.h"
+#include "minirend.h"
 #include "quickjs.h"
 
 /* Minimal DOM implementation sufficient for three.js and basic UIs.
@@ -79,7 +79,7 @@ js_element_appendChild(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_dom_init(JSContext *ctx, MinrendApp *app) {
+minirend_dom_init(JSContext *ctx, MinirendApp *app) {
     (void)app;
 
     JSValue global_obj = JS_GetGlobalObject(ctx);

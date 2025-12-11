@@ -1,5 +1,5 @@
 /*
- * sokol_main.c - Minrend entry point using sokol_app + sokol_gfx
+ * sokol_main.c - minirend entry point using sokol_app + sokol_gfx
  * 
  * This replaces the SDL2-based main.c with a lightweight sokol implementation.
  * Sokol provides:
@@ -24,7 +24,7 @@
 #include "sokol_gfx.h"
 #include "sokol_glue.h"
 
-#include "minrend.h"
+#include "minirend.h"
 
 /* =========================================================================
  * Application State
@@ -45,19 +45,19 @@ typedef struct {
     sg_pass_action pass_action;
     
     /* Configuration */
-    MinrendConfig config;
+    MinirendConfig config;
     
     /* Running state */
     bool initialized;
-} MinrendState;
+} MinirendState;
 
-static MinrendState g_state = {0};
+static MinirendState g_state = {0};
 
 /* =========================================================================
  * Configuration
  * ========================================================================= */
 
-static void parse_config_line(const char *line, MinrendConfig *cfg) {
+static void parse_config_line(const char *line, MinirendConfig *cfg) {
     char key[64] = {0};
     char value[256] = {0};
     
@@ -79,11 +79,11 @@ static void parse_config_line(const char *line, MinrendConfig *cfg) {
             cfg->title = title_buf;
         } else if (strcmp(k, "WINDOW_MODE") == 0) {
             if (strcmp(v, "fullscreen") == 0) {
-                cfg->window_mode = MINREND_WINDOW_FULLSCREEN;
+                cfg->window_mode = MINIREND_WINDOW_FULLSCREEN;
             } else if (strcmp(v, "borderless") == 0) {
-                cfg->window_mode = MINREND_WINDOW_BORDERLESS;
+                cfg->window_mode = MINIREND_WINDOW_BORDERLESS;
             } else {
-                cfg->window_mode = MINREND_WINDOW_WINDOWED;
+                cfg->window_mode = MINIREND_WINDOW_WINDOWED;
             }
         } else if (strcmp(k, "VSYNC") == 0) {
             cfg->vsync = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0);
@@ -91,7 +91,7 @@ static void parse_config_line(const char *line, MinrendConfig *cfg) {
     }
 }
 
-static void load_config(MinrendConfig *cfg) {
+static void load_config(MinirendConfig *cfg) {
     const char *config_paths[] = {
         "build.config",
         "app/build.config",
@@ -103,13 +103,13 @@ static void load_config(MinrendConfig *cfg) {
     for (int i = 0; config_paths[i] != NULL; i++) {
         f = fopen(config_paths[i], "r");
         if (f) {
-            fprintf(stderr, "[Minrend] Loading config from: %s\n", config_paths[i]);
+            fprintf(stderr, "[minirend] Loading config from: %s\n", config_paths[i]);
             break;
         }
     }
     
     if (!f) {
-        fprintf(stderr, "[Minrend] No build.config found, using defaults\n");
+        fprintf(stderr, "[minirend] No build.config found, using defaults\n");
         return;
     }
     
@@ -127,7 +127,7 @@ static void load_config(MinrendConfig *cfg) {
 static void init_cb(void) {
     fprintf(stderr, "\n");
     fprintf(stderr, "╔══════════════════════════════════════╗\n");
-    fprintf(stderr, "║         MINREND ENGINE (Sokol)       ║\n");
+    fprintf(stderr, "║         MINIREND ENGINE (Sokol)       ║\n");
     fprintf(stderr, "╚══════════════════════════════════════╝\n\n");
     
     /* Initialize sokol_gfx */
@@ -145,7 +145,7 @@ static void init_cb(void) {
         }
     };
     
-    fprintf(stderr, "[Minrend] Graphics backend: ");
+    fprintf(stderr, "[minirend] Graphics backend: ");
     #if defined(SOKOL_D3D11)
         fprintf(stderr, "D3D11\n");
     #elif defined(SOKOL_METAL)
@@ -159,37 +159,37 @@ static void init_cb(void) {
     #endif
     
     /* Initialize JavaScript engine */
-    fprintf(stderr, "[Minrend] Initializing JavaScript engine...\n");
-    g_state.js_rt = minrend_js_init();
-    g_state.js_ctx = minrend_js_create_context(g_state.js_rt);
+    fprintf(stderr, "[minirend] Initializing JavaScript engine...\n");
+    g_state.js_rt = minirend_js_init();
+    g_state.js_ctx = minirend_js_create_context(g_state.js_rt);
     
     /* Register host bindings */
-    /* Note: We pass NULL for app since MinrendApp struct is SDL-specific */
+    /* Note: We pass NULL for app since MinirendApp struct is SDL-specific */
     /* These bindings will need to be updated for sokol */
-    minrend_register_console(g_state.js_ctx);
+    minirend_register_console(g_state.js_ctx);
     /* TODO: Update these bindings for sokol */
-    /* minrend_dom_init(g_state.js_ctx, NULL); */
-    /* minrend_webgl_register(g_state.js_ctx, NULL); */
-    /* minrend_canvas_register(g_state.js_ctx, NULL); */
-    /* minrend_register_timers(g_state.js_ctx, NULL); */
-    minrend_fetch_register(g_state.js_ctx);
-    minrend_storage_register(g_state.js_ctx);
+    /* minirend_dom_init(g_state.js_ctx, NULL); */
+    /* minirend_webgl_register(g_state.js_ctx, NULL); */
+    /* minirend_canvas_register(g_state.js_ctx, NULL); */
+    /* minirend_register_timers(g_state.js_ctx, NULL); */
+    minirend_fetch_register(g_state.js_ctx);
+    minirend_storage_register(g_state.js_ctx);
     
     /* Load entry files */
     if (g_state.config.entry_html_path) {
-        fprintf(stderr, "[Minrend] HTML entry: %s\n", g_state.config.entry_html_path);
-        /* TODO: minrend_renderer_load_html(NULL, g_state.config.entry_html_path); */
+        fprintf(stderr, "[minirend] HTML entry: %s\n", g_state.config.entry_html_path);
+        /* TODO: minirend_renderer_load_html(NULL, g_state.config.entry_html_path); */
     }
     
     if (g_state.config.entry_js_path) {
-        fprintf(stderr, "[Minrend] JS entry: %s\n", g_state.config.entry_js_path);
-        if (minrend_js_eval_file(g_state.js_ctx, g_state.config.entry_js_path) != 0) {
-            fprintf(stderr, "[Minrend] Warning: Failed to evaluate JS entry\n");
+        fprintf(stderr, "[minirend] JS entry: %s\n", g_state.config.entry_js_path);
+        if (minirend_js_eval_file(g_state.js_ctx, g_state.config.entry_js_path) != 0) {
+            fprintf(stderr, "[minirend] Warning: Failed to evaluate JS entry\n");
         }
     }
     
     g_state.initialized = true;
-    fprintf(stderr, "[Minrend] Ready.\n\n");
+    fprintf(stderr, "[minirend] Ready.\n\n");
 }
 
 static void frame_cb(void) {
@@ -197,7 +197,7 @@ static void frame_cb(void) {
     
     /* Tick JavaScript animation callbacks */
     if (g_state.js_ctx) {
-        minrend_js_tick_frame(g_state.js_ctx);
+        minirend_js_tick_frame(g_state.js_ctx);
     }
     
     /* Begin render pass */
@@ -208,17 +208,17 @@ static void frame_cb(void) {
     sg_begin_pass(&pass);
     
     /* TODO: Render HTML/CSS content here */
-    /* minrend_renderer_draw(NULL); */
+    /* minirend_renderer_draw(NULL); */
     
     sg_end_pass();
     sg_commit();
 }
 
 static void cleanup_cb(void) {
-    fprintf(stderr, "[Minrend] Shutting down...\n");
+    fprintf(stderr, "[minirend] Shutting down...\n");
     
     if (g_state.js_rt || g_state.js_ctx) {
-        minrend_js_dispose(g_state.js_rt, g_state.js_ctx);
+        minirend_js_dispose(g_state.js_rt, g_state.js_ctx);
     }
     
     sg_shutdown();
@@ -229,7 +229,7 @@ static void event_cb(const sapp_event *ev) {
         case SAPP_EVENTTYPE_RESIZED:
             g_state.width = ev->window_width;
             g_state.height = ev->window_height;
-            fprintf(stderr, "[Minrend] Window resized: %dx%d\n", 
+            fprintf(stderr, "[minirend] Window resized: %dx%d\n", 
                     g_state.width, g_state.height);
             break;
             
@@ -264,11 +264,11 @@ sapp_desc sokol_main(int argc, char* argv[]) {
     (void)argv;
     
     /* Initialize config with defaults */
-    g_state.config = (MinrendConfig){
+    g_state.config = (MinirendConfig){
         .width = 1280,
         .height = 720,
-        .title = "Minrend",
-        .window_mode = MINREND_WINDOW_WINDOWED,
+        .title = "minirend",
+        .window_mode = MINIREND_WINDOW_WINDOWED,
         .vsync = true,
     };
     
@@ -304,7 +304,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
     g_state.width = g_state.config.width;
     g_state.height = g_state.config.height;
     g_state.title = g_state.config.title;
-    g_state.fullscreen = (g_state.config.window_mode == MINREND_WINDOW_FULLSCREEN);
+    g_state.fullscreen = (g_state.config.window_mode == MINIREND_WINDOW_FULLSCREEN);
     
     return (sapp_desc){
         .init_cb = init_cb,
@@ -324,17 +324,17 @@ sapp_desc sokol_main(int argc, char* argv[]) {
 }
 
 /* =========================================================================
- * Legacy API Compatibility (for minrend_run)
+ * Legacy API Compatibility (for minirend_run)
  * ========================================================================= */
 
-int minrend_run(const MinrendConfig *cfg) {
+int minirend_run(const MinirendConfig *cfg) {
     /* Store config */
     if (cfg) {
         g_state.config = *cfg;
         g_state.width = cfg->width > 0 ? cfg->width : 1280;
         g_state.height = cfg->height > 0 ? cfg->height : 720;
-        g_state.title = cfg->title ? cfg->title : "Minrend";
-        g_state.fullscreen = (cfg->window_mode == MINREND_WINDOW_FULLSCREEN);
+        g_state.title = cfg->title ? cfg->title : "minirend";
+        g_state.fullscreen = (cfg->window_mode == MINIREND_WINDOW_FULLSCREEN);
     }
     
     /* With SOKOL_NO_ENTRY, sokol_main is not called automatically.
@@ -342,7 +342,7 @@ int minrend_run(const MinrendConfig *cfg) {
      * For now, this function is provided for API compatibility.
      * The actual entry point is sokol_main() above.
      */
-    fprintf(stderr, "[Minrend] minrend_run called - use sokol_main entry point instead\n");
+    fprintf(stderr, "[minirend] minirend_run called - use sokol_main entry point instead\n");
     return 0;
 }
 

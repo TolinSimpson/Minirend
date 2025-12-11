@@ -14,12 +14,12 @@ BASH_SECTION_START
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Unified Minrend build script (works on Windows and Unix)
+# Unified minirend build script (works on Windows and Unix)
 # ---------------------------------------------------------
 # This script:
 #   - Ensures Cosmopolitan's cosmocc toolchain is present (downloads if needed)
 #   - Ensures QuickJS and Modest are cloned into third_party
-#   - Builds the project using Cosmopolitan's make and outputs dist/minrend
+#   - Builds the project using Cosmopolitan's make and outputs dist/minirend
 #
 # Usage:
 #   ./build_scripts/build [args...]
@@ -28,7 +28,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Building Minrend in $ROOT"
+echo "==> Building minirend in $ROOT"
 
 # Bootstrap dependencies first
 if [[ -f "$ROOT/build_scripts/bootstrap_deps" ]]; then
@@ -144,28 +144,28 @@ echo "==> [STAGE] Linking executable"
 # On Windows, convert ELF to APE format using fixupobj + apelink
 # This is needed because we bypassed the cosmocc wrapper which normally does this
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
-  if [[ -f "$ROOT/minrend" ]]; then
+  if [[ -f "$ROOT/minirend" ]]; then
     FIXUPOBJ="$COSMO_DIR/bin/fixupobj"
     APELINK="$COSMO_DIR/bin/apelink"
     APE_LOADER="$COSMO_DIR/bin/ape-x86_64.elf"
     
     echo "==> Post-processing ELF with fixupobj..."
     if [[ -f "$FIXUPOBJ" ]]; then
-      "$FIXUPOBJ" "$ROOT/minrend" || echo "Warning: fixupobj returned non-zero"
+      "$FIXUPOBJ" "$ROOT/minirend" || echo "Warning: fixupobj returned non-zero"
     fi
     
     echo "==> Converting ELF to APE format..."
     if [[ -f "$APELINK" ]]; then
       # Create APE with embedded loader for Windows/Linux/Mac compatibility
-      mv "$ROOT/minrend" "$ROOT/minrend.elf"
-      "$APELINK" -l "$APE_LOADER" -o "$ROOT/minrend" "$ROOT/minrend.elf" || {
+      mv "$ROOT/minirend" "$ROOT/minirend.elf"
+      "$APELINK" -l "$APE_LOADER" -o "$ROOT/minirend" "$ROOT/minirend.elf" || {
         echo "Warning: apelink failed, trying without loader..."
-        "$APELINK" -o "$ROOT/minrend" "$ROOT/minrend.elf" || {
+        "$APELINK" -o "$ROOT/minirend" "$ROOT/minirend.elf" || {
           echo "Warning: apelink failed, keeping ELF format"
-          mv "$ROOT/minrend.elf" "$ROOT/minrend"
+          mv "$ROOT/minirend.elf" "$ROOT/minirend"
         }
       }
-      rm -f "$ROOT/minrend.elf"
+      rm -f "$ROOT/minirend.elf"
       echo "==> APE conversion complete"
     else
       echo "WARNING: apelink not found, executable may not run on Windows"
@@ -175,7 +175,7 @@ fi
 
 mkdir -p "$ROOT/dist"
 
-if [[ -f "$ROOT/minrend" ]]; then
+if [[ -f "$ROOT/minirend" ]]; then
   echo "==> [STAGE] Creating distribution package"
   # Create ZIP of app directory contents for embedding
   # Important: zip the contents, not the directory itself, so paths are "index.html" not "app/index.html"
@@ -224,23 +224,23 @@ if [[ -f "$ROOT/minrend" ]]; then
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
       # On Windows, use PowerShell or cmd to concatenate
       if command -v powershell >/dev/null 2>&1; then
-        powershell -NoLogo -NoProfile -Command "Get-Content 'minrend','app.zip' -Raw | Set-Content 'minrend.zip' -NoNewline"
-        mv "$ROOT/minrend.zip" "$ROOT/minrend"
+        powershell -NoLogo -NoProfile -Command "Get-Content 'minirend','app.zip' -Raw | Set-Content 'minirend.zip' -NoNewline"
+        mv "$ROOT/minirend.zip" "$ROOT/minirend"
       else
         # Fallback: use cmd copy
-        copy /B "$ROOT\minrend" + "$ROOT\app.zip" "$ROOT\minrend" >nul 2>&1 || {
-          cat "$ROOT/minrend" "$ROOT/app.zip" > "$ROOT/minrend.tmp" && mv "$ROOT/minrend.tmp" "$ROOT/minrend"
+        copy /B "$ROOT\minirend" + "$ROOT\app.zip" "$ROOT\minirend" >nul 2>&1 || {
+          cat "$ROOT/minirend" "$ROOT/app.zip" > "$ROOT/minirend.tmp" && mv "$ROOT/minirend.tmp" "$ROOT/minirend"
         }
       fi
-      cp "$ROOT/minrend" "$ROOT/dist/minrend.exe"
-      echo "==> Built single-file executable: dist/minrend.exe"
+      cp "$ROOT/minirend" "$ROOT/dist/minirend.exe"
+      echo "==> Built single-file executable: dist/minirend.exe"
     else
       # On Unix, use cat
-      cat "$ROOT/minrend" "$ROOT/app.zip" > "$ROOT/minrend.tmp"
-      mv "$ROOT/minrend.tmp" "$ROOT/minrend"
-      chmod +x "$ROOT/minrend"
-      cp "$ROOT/minrend" "$ROOT/dist/minrend"
-      echo "==> Built single-file executable: dist/minrend"
+      cat "$ROOT/minirend" "$ROOT/app.zip" > "$ROOT/minirend.tmp"
+      mv "$ROOT/minirend.tmp" "$ROOT/minirend"
+      chmod +x "$ROOT/minirend"
+      cp "$ROOT/minirend" "$ROOT/dist/minirend"
+      echo "==> Built single-file executable: dist/minirend"
     fi
     
     # Clean up temporary ZIP
@@ -248,11 +248,11 @@ if [[ -f "$ROOT/minrend" ]]; then
   else
     # Fallback: copy executable and app directory separately
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
-      cp "$ROOT/minrend" "$ROOT/dist/minrend.exe"
-      echo "==> Built executable: dist/minrend.exe (app not embedded)"
+      cp "$ROOT/minirend" "$ROOT/dist/minirend.exe"
+      echo "==> Built executable: dist/minirend.exe (app not embedded)"
     else
-      cp "$ROOT/minrend" "$ROOT/dist/minrend"
-      echo "==> Built executable: dist/minrend (app not embedded)"
+      cp "$ROOT/minirend" "$ROOT/dist/minirend"
+      echo "==> Built executable: dist/minirend (app not embedded)"
     fi
     
     if [[ -d "$ROOT/app" ]]; then
@@ -262,7 +262,7 @@ if [[ -f "$ROOT/minrend" ]]; then
     fi
   fi
 else
-  echo "WARNING: 'minrend' executable not found in project root after build."
+  echo "WARNING: 'minirend' executable not found in project root after build."
 fi
 
 echo "==> [STAGE] Build complete"

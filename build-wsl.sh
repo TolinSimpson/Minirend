@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# build-wsl.sh - Build Minrend using WSL with proper Linux headers
+# build-wsl.sh - Build minirend using WSL with proper Linux headers
 #
 # Usage from PowerShell:
 #   wsl bash ./build-wsl.sh
@@ -8,7 +8,7 @@
 set -e
 
 echo "========================================"
-echo " Minrend WSL Build"
+echo " minirend WSL Build"
 echo "========================================"
 echo ""
 
@@ -67,16 +67,16 @@ echo " Build Complete!"
 echo "========================================"
 
 # Check if executable was created
-if [ -f "minrend" ]; then
+if [ -f "minirend" ]; then
     echo ""
-    echo "Output: $(pwd)/minrend"
-    file minrend
-    ls -lh minrend
+    echo "Output: $(pwd)/minirend"
+    file minirend
+    ls -lh minirend
 fi
 
-if [ -f "dist/minrend" ]; then
+if [ -f "dist/minirend" ]; then
     echo ""
-    echo "Distribution: $(pwd)/dist/minrend"
-    ls -lh dist/minrend
+    echo "Distribution: $(pwd)/dist/minirend"
+    ls -lh dist/minirend
 fi
 

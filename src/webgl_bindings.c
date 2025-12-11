@@ -11,7 +11,7 @@ typedef double GLclampd;
 typedef unsigned char GLboolean;
 typedef void GLvoid;
 
-#include "minrend.h"
+#include "minirend.h"
 #include "quickjs.h"
 
 /* Very small subset of WebGL 1.0 mapped onto OpenGL.
@@ -68,7 +68,7 @@ js_canvas_getContext(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_webgl_register(JSContext *ctx, MinrendApp *app) {
+minirend_webgl_register(JSContext *ctx, MinirendApp *app) {
     (void)app;
 
     JS_NewClassID(&js_webgl_ctx_class_id);

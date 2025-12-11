@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "minrend.h"
+#include "minirend.h"
 
 /* Cross-platform timer using clock_gettime (works with Cosmopolitan) */
 static uint32_t get_ticks_ms(void) {
@@ -52,7 +52,7 @@ read_file(const char *path, size_t *out_size) {
 }
 
 JSRuntime *
-minrend_js_init(void) {
+minirend_js_init(void) {
     JSRuntime *rt = JS_NewRuntime();
     if (!rt) {
         fprintf(stderr, "QuickJS: failed to create runtime\n");
@@ -61,7 +61,7 @@ minrend_js_init(void) {
 }
 
 JSContext *
-minrend_js_create_context(JSRuntime *rt) {
+minirend_js_create_context(JSRuntime *rt) {
     JSContext *ctx = JS_NewContext(rt);
     if (!ctx) {
         fprintf(stderr, "QuickJS: failed to create context\n");
@@ -71,16 +71,16 @@ minrend_js_create_context(JSRuntime *rt) {
 }
 
 void
-minrend_js_register_bindings(JSContext *ctx, MinrendApp *app) {
+minirend_js_register_bindings(JSContext *ctx, MinirendApp *app) {
     (void)ctx;
     (void)app;
     /* High-level hook – currently unused; per‑subsystem registration
-     * happens via the dedicated functions declared in minrend.h.
+     * happens via the dedicated functions declared in minirend.h.
      */
 }
 
 void
-minrend_js_dispose(JSRuntime *rt, JSContext *ctx) {
+minirend_js_dispose(JSRuntime *rt, JSContext *ctx) {
     if (ctx) JS_FreeContext(ctx);
     if (rt) JS_FreeRuntime(rt);
 }
@@ -121,7 +121,7 @@ js_console_log(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_register_console(JSContext *ctx) {
+minirend_register_console(JSContext *ctx) {
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue console    = JS_NewObject(ctx);
 
@@ -138,7 +138,7 @@ minrend_register_console(JSContext *ctx) {
 }
 
 int
-minrend_js_eval_file(JSContext *ctx, const char *path) {
+minirend_js_eval_file(JSContext *ctx, const char *path) {
     size_t size = 0;
     char *code = read_file(path, &size);
     if (!code) {
@@ -166,7 +166,7 @@ minrend_js_eval_file(JSContext *ctx, const char *path) {
  * to be called once per frame from the main SDL loop.
  *
  * For now, we implement a simple queue of callbacks that are invoked
- * each time the host calls `minrend_tick_animation`.
+ * each time the host calls `minirend_tick_animation`.
  */
 
 typedef struct RAFCallback {
@@ -219,7 +219,7 @@ js_cancelAnimationFrame(JSContext *ctx, JSValueConst this_val,
 
 /* Called once per frame from the host main loop. */
 static void
-minrend_tick_animation(JSContext *ctx) {
+minirend_tick_animation(JSContext *ctx) {
     uint32_t now_ms = get_ticks_ms();
     double   now    = (double)now_ms;
 
@@ -249,7 +249,7 @@ js_performance_now(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_register_timers(JSContext *ctx, MinrendApp *app) {
+minirend_register_timers(JSContext *ctx, MinirendApp *app) {
     (void)app;
 
     JSValue global_obj = JS_GetGlobalObject(ctx);
@@ -278,8 +278,8 @@ minrend_register_timers(JSContext *ctx, MinrendApp *app) {
 
 /* Expose a hook for the renderer/main loop to tick animations. */
 void
-minrend_js_tick_frame(JSContext *ctx) {
-    minrend_tick_animation(ctx);
+minirend_js_tick_frame(JSContext *ctx) {
+    minirend_tick_animation(ctx);
 }
 
 

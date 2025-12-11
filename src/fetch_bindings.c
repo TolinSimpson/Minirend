@@ -7,7 +7,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include "minrend.h"
+#include "minirend.h"
 #include "quickjs.h"
 
 /* Very small HTTP helper used by JS-level fetch wrapper.
@@ -147,7 +147,7 @@ js_httpGet(JSContext *ctx, JSValueConst this_val,
 }
 
 void
-minrend_fetch_register(JSContext *ctx) {
+minirend_fetch_register(JSContext *ctx) {
     JSValue global_obj = JS_GetGlobalObject(ctx);
 
     JS_SetPropertyStr(ctx, global_obj, "httpGet",

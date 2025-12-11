@@ -14,7 +14,7 @@ BASH_SECTION_START
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Unified bootstrap script for Minrend dependencies
+# Unified bootstrap script for minirend dependencies
 # -------------------------------------------------
 # This script:
 #   - Downloads Cosmopolitan's cosmocc toolchain if missing

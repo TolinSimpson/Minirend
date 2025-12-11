@@ -32,7 +32,7 @@ cd "$ROOT"
 CONFIG_FILE="${1:-$ROOT/build.config}"
 
 APP_DIR="${APP_DIR:-app}"
-OUT_NAME="${OUT_NAME:-minrend}"
+OUT_NAME="${OUT_NAME:-minirend}"
 
 if [[ -f "$CONFIG_FILE" ]]; then
   echo "[INFO] Loading build config from $CONFIG_FILE"
@@ -54,7 +54,7 @@ if [[ -f "$CONFIG_FILE" ]]; then
   
   # Override with exported variables
   APP_DIR="${APP_DIR:-app}"
-  OUT_NAME="${OUT_NAME:-minrend}"
+  OUT_NAME="${OUT_NAME:-minirend}"
 else
   echo "[INFO] No build config found at $CONFIG_FILE, using defaults."
 fi
@@ -71,15 +71,15 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; t
   EXE_EXT=".exe"
 fi
 
-if [[ -f "$ROOT/dist/minrend$EXE_EXT" ]]; then
-  if [[ "$OUT_NAME" != "minrend" ]]; then
-    cp "$ROOT/dist/minrend$EXE_EXT" "$ROOT/dist/${OUT_NAME}${EXE_EXT}"
-    echo "[INFO] Copied dist/minrend${EXE_EXT} to dist/${OUT_NAME}${EXE_EXT}"
+if [[ -f "$ROOT/dist/minirend$EXE_EXT" ]]; then
+  if [[ "$OUT_NAME" != "minirend" ]]; then
+    cp "$ROOT/dist/minirend$EXE_EXT" "$ROOT/dist/${OUT_NAME}${EXE_EXT}"
+    echo "[INFO] Copied dist/minirend${EXE_EXT} to dist/${OUT_NAME}${EXE_EXT}"
   else
-    echo "[INFO] Keeping default executable name dist/minrend${EXE_EXT}"
+    echo "[INFO] Keeping default executable name dist/minirend${EXE_EXT}"
   fi
 else
-  echo "[WARN] dist/minrend${EXE_EXT} not found after base build."
+  echo "[WARN] dist/minirend${EXE_EXT} not found after base build."
 fi
 
 # Copy app directory

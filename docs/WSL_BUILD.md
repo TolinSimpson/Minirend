@@ -1,4 +1,4 @@
-# Building Minrend with WSL (Windows Subsystem for Linux)
+# Building minirend with WSL (Windows Subsystem for Linux)
 
 The cosmo-sokol shims require Linux system headers (`/usr/include/X11`, `/usr/include/GL`) to compile the Linux/OpenGL backend. On Windows, use WSL for local cross-platform builds.
 
@@ -53,7 +53,7 @@ sudo apt install -y parallel
 1. Navigate to your project (Windows drives are mounted under `/mnt/`):
 
 ```bash
-cd /mnt/c/dev/Minrend
+cd /mnt/c/dev/minirend
 ```
 
 2. Run the build:
@@ -67,7 +67,7 @@ cd /mnt/c/dev/Minrend
 From PowerShell in your project directory:
 
 ```powershell
-wsl bash -c "cd /mnt/c/dev/Minrend && ./build_scripts/build"
+wsl bash -c "cd /mnt/c/dev/minirend && ./build_scripts/build"
 ```
 
 ### Option C: Use the Configurator with WSL
@@ -86,7 +86,7 @@ if (process.platform === 'win32') {
 The cosmo-sokol approach uses symlinks to system headers. In WSL, create them:
 
 ```bash
-cd /mnt/c/dev/Minrend/src/platform/shims
+cd /mnt/c/dev/minirend/src/platform/shims
 
 # Create symlinks to system headers
 ln -sf /usr/include/X11 X11
@@ -112,7 +112,7 @@ chmod +x build_scripts/bootstrap_deps
 The bootstrap script will download cosmocc automatically. If it fails, download manually:
 
 ```bash
-cd /mnt/c/dev/Minrend/third_party
+cd /mnt/c/dev/minirend/third_party
 mkdir -p cosmocc
 cd cosmocc
 wget https://github.com/jart/cosmopolitan/releases/latest/download/cosmocc-4.0.2.zip
@@ -135,7 +135,7 @@ Save this as `build-wsl.sh` in your project root:
 #!/bin/bash
 set -e
 
-echo "==> Building Minrend in WSL"
+echo "==> Building minirend in WSL"
 
 # Ensure we're in the project directory
 cd "$(dirname "$0")"

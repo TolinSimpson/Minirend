@@ -1,12 +1,12 @@
 #
-# Minrend build system
+# minirend build system
 #
 # This Makefile is written to be friendly to Cosmopolitan's `cosmocc`
 # toolchain but can also work with a normal POSIX toolchain for local
 # development.
 #
 
-PROJECT    := minrend
+PROJECT    := minirend
 
 # Compiler / archiver
 # By default we use the wrapper scripts in build_scripts/ which handle both
@@ -105,7 +105,7 @@ LDLIBS    += $(QJS_LIB) $(MODEST_LIB)
 # ============================================================================
 
 LDLIBS += $(SOKOL_LIB)
-CFLAGS += -DMINREND_SOKOL_ENABLED
+CFLAGS += -DMINIREND_SOKOL_ENABLED
 
 all: $(PROJECT)
 
@@ -204,14 +204,14 @@ clean:
 
 # Print build info
 info:
-	@echo "Minrend Build Configuration"
+	@echo "minirend Build Configuration"
 	@echo "==========================="
 	@echo ""
 	@echo "Sokol platform files:"
 	@echo "  $(SOKOL_SHIM_SRCS)"
 	@echo ""
 	@echo "Build targets:"
-	@echo "  all   - Build minrend"
+	@echo "  all   - Build minirend"
 	@echo "  clean - Remove build artifacts"
 	@echo "  info  - Show this help"
 

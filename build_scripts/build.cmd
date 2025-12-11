@@ -1,5 +1,5 @@
 @echo off
-REM Minrend Windows build script (wrapper for unified build)
+REM minirend Windows build script (wrapper for unified build)
 REM --------------------------------------------------------
 REM This script is a compatibility wrapper that calls the unified build script.
 REM The unified script (scripts/build) works on both Windows and Unix.
