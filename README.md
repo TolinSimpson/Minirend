@@ -3,9 +3,10 @@
 > ⚠️ **EXPERIMENTAL** – This project is under active development and APIs may change without notice. Use at your own risk.
 
 ---
-## Other Projects
+## The tiny web ecosystem
 ### [Minibun](https://github.com/TolinSimpson/Minibun) - A tiny javascript bundler implementation.
 ### [minima-js](https://github.com/TolinSimpson/minima-js) - A tiny, fully-featured, zero-dependency JavaScript framework. 
+### [LLM Tiny Web](https://github.com/TolinSimpson/LLM-Agent-Tiny-Web-Instructions) - Optimized LLM instructions for writing tiny web code
 ---
 
 You build **one native binary** that:
