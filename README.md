@@ -2,16 +2,18 @@
 
 > ⚠️ **EXPERIMENTAL** – This project is under active development and APIs may change without notice. Use at your own risk.
 
-- **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
-- **Sokol** – cross‑platform graphics abstraction (handles D3D11, Metal, OpenGL, WebGPU backends automatically)  
-- **QuickJS** – embeddable JavaScript engine  
-- **Modest** – HTML/CSS rendering (planned integration, needs input detection)  
+---
+## Other Projects
+### [Minibun](https://github.com/TolinSimpson/Minibun) - A tiny javascript bundler implementation.
+### [minima-js](https://github.com/TolinSimpson/minima-js) - A tiny, fully-featured, zero-dependency JavaScript framework. 
+---
 
 You build **one native binary** that:
 
 - Opens a desktop window on major OSes  
 - Loads your HTML/CSS/JS app  
 - Provides a DOM‑like API, `localStorage`, `fetch` (basic), and WebGL hooks  
+- Bundle custom C libraries with JS interop
 
 ## Requirements
 
@@ -19,6 +21,26 @@ You build **one native binary** that:
 - Node.js (for the configurator UI)  
 - PowerShell (Windows)  
 - A C toolchain is bundled via Cosmopolitan's `cosmocc` (downloaded automatically)  
+
+## Dependencies 
+
+- **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
+- **Sokol** – cross‑platform graphics abstraction (handles D3D11, Metal, OpenGL, WebGPU backends automatically)  
+- **QuickJS** – embeddable JavaScript engine  
+- **Modest** – HTML/CSS rendering (planned integration, needs input detection)  
+
+### Feature Comparison
+
+| Feature | minirend | Neutralino.js | Electron | Wails |
+|---------|----------|---------------|----------|-------|
+| **Rendering backend** | Custom C DOM | OS WebView | Chromium + Node.js | OS WebView + Go |
+| **App size / footprint** | Tiny | Tiny | Large | Medium |
+| **Win, Mac, Linux Builds** | ✅ | ✅ | ✅ | ✅ |
+| **Built‑in dev tooling** | ✅ | ✅ | ✅ | ✅ |
+| **JS, HTML, CSS Support** | ✅ + C | ✅ | ✅ | ✅ + Go |
+| **Single Cross-platform Binary** | ✅ | ❌ | ❌ | ❌ |
+| **Custom Browser** | ✅ | ❌ | ❌ | ❌ |
+| **Native UI integration** | ❌ (wip) | ✅ (basic) | ✅ | ✅ |
 
 ## Folder Layout
 
@@ -45,7 +67,7 @@ node minirend.js
 
 This opens the configurator UI in your browser at `http://localhost:4173/`.
 
-### 2. Build from command line
+### Or build from command line
 
 ```bash
 # Unix/macOS/Git Bash
@@ -91,18 +113,8 @@ On Windows PowerShell/cmd, run `minirend.exe` from the build directory.
 
 minirend is **experimental** and intentionally small:
 
-- DOM APIs are minimal and focused on common UI + three.js use cases  
+- DOM APIs are minimal and focused on common UI use cases  
 - WebGL is exposed via Sokol's cross-platform graphics abstraction  
 - Networking and storage are thin wrappers over the host OS via Cosmopolitan  
 
 See `src/` and `Makefile` for deeper integration details.
-
----
-
-## Other Projects
-
-### [Minibun](https://github.com/TolinSimpson/Minibun)
-A tiny javascript bundler implementation.
-
-### [minima-js](https://github.com/TolinSimpson/minima-js)
-A tiny, fully-featured, zero-dependency JavaScript framework. 
