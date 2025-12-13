@@ -163,10 +163,10 @@ minirend_js_eval_file(JSContext *ctx, const char *path) {
 /* requestAnimationFrame implementation
  * ------------------------------------
  * We expose window.requestAnimationFrame(cb) which schedules `cb`
- * to be called once per frame from the main SDL loop.
+ * to be called once per frame from the sokol frame callback.
  *
- * For now, we implement a simple queue of callbacks that are invoked
- * each time the host calls `minirend_tick_animation`.
+ * Callbacks are one-shot: they are invoked once and then freed.
+ * To create an animation loop, the callback must call requestAnimationFrame again.
  */
 
 typedef struct RAFCallback {
@@ -217,24 +217,34 @@ js_cancelAnimationFrame(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-/* Called once per frame from the host main loop. */
+/* Called once per frame from the host main loop.
+ * RAF callbacks are one-shot: they are cleared after invocation.
+ */
 static void
 minirend_tick_animation(JSContext *ctx) {
     uint32_t now_ms = get_ticks_ms();
     double   now    = (double)now_ms;
 
-    RAFCallback *cb = g_raf_head;
-    while (cb) {
-        JSValue func = JS_DupValue(ctx, cb->func);
-        JSValue arg  = JS_NewFloat64(ctx, now);
-        JSValue ret  = JS_Call(ctx, func, JS_UNDEFINED, 1, &arg);
+    /* Take ownership of the callback list and clear the global head.
+     * This ensures RAF is one-shot (callbacks must re-register each frame). */
+    RAFCallback *list = g_raf_head;
+    g_raf_head = NULL;
+
+    while (list) {
+        RAFCallback *cb = list;
+        list = cb->next;
+
+        JSValue arg = JS_NewFloat64(ctx, now);
+        JSValue ret = JS_Call(ctx, cb->func, JS_UNDEFINED, 1, &arg);
         JS_FreeValue(ctx, arg);
-        JS_FreeValue(ctx, func);
         if (JS_IsException(ret)) {
             dump_exception(ctx);
         }
         JS_FreeValue(ctx, ret);
-        cb = cb->next;
+
+        /* Free the callback after invocation */
+        JS_FreeValue(ctx, cb->func);
+        free(cb);
     }
 }
 

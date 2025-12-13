@@ -1,7 +1,6 @@
 /*
  * sokol_main.c - minirend entry point using sokol_app + sokol_gfx
  * 
- * This replaces the SDL2-based main.c with a lightweight sokol implementation.
  * Sokol provides:
  *   - Cross-platform windowing (sokol_app.h)
  *   - Graphics abstraction (sokol_gfx.h) - D3D11/Metal/GL/WebGPU
@@ -164,14 +163,11 @@ static void init_cb(void) {
     g_state.js_ctx = minirend_js_create_context(g_state.js_rt);
     
     /* Register host bindings */
-    /* Note: We pass NULL for app since MinirendApp struct is SDL-specific */
-    /* These bindings will need to be updated for sokol */
     minirend_register_console(g_state.js_ctx);
-    /* TODO: Update these bindings for sokol */
-    /* minirend_dom_init(g_state.js_ctx, NULL); */
-    /* minirend_webgl_register(g_state.js_ctx, NULL); */
-    /* minirend_canvas_register(g_state.js_ctx, NULL); */
-    /* minirend_register_timers(g_state.js_ctx, NULL); */
+    minirend_dom_init(g_state.js_ctx, NULL);
+    minirend_register_timers(g_state.js_ctx, NULL);
+    minirend_webgl_register(g_state.js_ctx, NULL);
+    minirend_canvas_register(g_state.js_ctx, NULL);
     minirend_fetch_register(g_state.js_ctx);
     minirend_storage_register(g_state.js_ctx);
     

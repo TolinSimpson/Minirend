@@ -52,7 +52,7 @@ void minirend_renderer_draw(MinirendApp *app);
 void minirend_webgl_register(JSContext *ctx, MinirendApp *app);
 void minirend_canvas_register(JSContext *ctx, MinirendApp *app);
 
-/* Timing / animation (implemented in js_engine.c using SDL2 timers) */
+/* Timing / animation (implemented in js_engine.c) */
 void minirend_register_timers(JSContext *ctx, MinirendApp *app);
 void minirend_js_tick_frame(JSContext *ctx);
 

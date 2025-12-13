@@ -89,7 +89,7 @@ minirend_dom_init(JSContext *ctx, MinirendApp *app) {
                       JS_DupValue(ctx, global_obj));
 
     /* window.innerWidth / innerHeight placeholders; these can be updated
-     * from the host when the SDL window is resized. */
+     * from the host when the window is resized. */
     JS_SetPropertyStr(ctx, global_obj, "innerWidth",
                       JS_NewInt32(ctx, 1280));
     JS_SetPropertyStr(ctx, global_obj, "innerHeight",
