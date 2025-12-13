@@ -90,7 +90,8 @@ http_get_simple(const char *url) {
     }
 
     for (;;) {
-        if (len + 4096 > cap) {
+        /* Ensure room for data + null terminator */
+        if (len + 4096 + 1 > cap) {
             cap *= 2;
             char *nbuf = (char *)realloc(buf, cap);
             if (!nbuf) {
