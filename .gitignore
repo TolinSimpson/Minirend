@@ -30,7 +30,6 @@ Thumbs.db
 # Editor / IDE config
 .vscode/
 .idea/
-*.code-workspace
 
 # Runtime artifacts
 storage.json
