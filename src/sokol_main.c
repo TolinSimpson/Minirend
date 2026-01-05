@@ -24,6 +24,10 @@
 #include "sokol_glue.h"
 
 #include "minirend.h"
+#include "input.h"
+#include "dom_runtime.h"
+#include "ui_tree.h"
+#include "modest_adapter.h"
 
 /* =========================================================================
  * Application State
@@ -170,6 +174,9 @@ static void init_cb(void) {
     minirend_canvas_register(g_state.js_ctx, NULL);
     minirend_fetch_register(g_state.js_ctx);
     minirend_storage_register(g_state.js_ctx);
+
+    /* Initialize input system after DOM/runtime are available. */
+    minirend_input_init(g_state.js_ctx);
     
     /* Load entry files */
     if (g_state.config.entry_html_path) {
@@ -191,6 +198,11 @@ static void init_cb(void) {
 static void frame_cb(void) {
     if (!g_state.initialized) return;
     
+    /* Process platform input events before running JS frame callbacks. */
+    if (g_state.js_ctx) {
+        minirend_input_tick(g_state.js_ctx);
+    }
+
     /* Tick JavaScript animation callbacks */
     if (g_state.js_ctx) {
         minirend_js_tick_frame(g_state.js_ctx);
@@ -213,6 +225,14 @@ static void frame_cb(void) {
 static void cleanup_cb(void) {
     fprintf(stderr, "[minirend] Shutting down...\n");
     
+    /* Tear down subsystems that hold JS refs before destroying the JS context. */
+    if (g_state.js_ctx) {
+        minirend_input_shutdown(g_state.js_ctx);
+        minirend_dom_runtime_shutdown(g_state.js_ctx);
+    }
+    minirend_modest_adapter_shutdown();
+    minirend_ui_tree_shutdown();
+
     if (g_state.js_rt || g_state.js_ctx) {
         minirend_js_dispose(g_state.js_rt, g_state.js_ctx);
     }
@@ -227,6 +247,10 @@ static void event_cb(const sapp_event *ev) {
             g_state.height = ev->window_height;
             fprintf(stderr, "[minirend] Window resized: %dx%d\n", 
                     g_state.width, g_state.height);
+            if (g_state.js_ctx) {
+                minirend_dom_set_viewport(g_state.js_ctx, g_state.width, g_state.height);
+            }
+            minirend_input_push_sapp_event(ev);
             break;
             
         case SAPP_EVENTTYPE_KEY_DOWN:
@@ -238,12 +262,19 @@ static void event_cb(const sapp_event *ev) {
             else if (ev->key_code == SAPP_KEYCODE_F11) {
                 sapp_toggle_fullscreen();
             }
+            minirend_input_push_sapp_event(ev);
+            break;
+
+        case SAPP_EVENTTYPE_KEY_UP:
+        case SAPP_EVENTTYPE_CHAR:
+            minirend_input_push_sapp_event(ev);
             break;
             
         case SAPP_EVENTTYPE_MOUSE_DOWN:
         case SAPP_EVENTTYPE_MOUSE_UP:
         case SAPP_EVENTTYPE_MOUSE_MOVE:
-            /* TODO: Forward to JS */
+        case SAPP_EVENTTYPE_MOUSE_SCROLL:
+            minirend_input_push_sapp_event(ev);
             break;
             
         default:

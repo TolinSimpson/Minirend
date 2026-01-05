@@ -58,9 +58,9 @@ float sapp_heightf(void) {
     }
 }
 
-extern int linux_sapp_color_format(void);
-extern int windows_sapp_color_format(void);
-int sapp_color_format(void) {
+extern sapp_pixel_format linux_sapp_color_format(void);
+extern sapp_pixel_format windows_sapp_color_format(void);
+sapp_pixel_format sapp_color_format(void) {
     if (IsLinux()) {
         return linux_sapp_color_format();
     }
@@ -69,9 +69,9 @@ int sapp_color_format(void) {
     }
 }
 
-extern int linux_sapp_depth_format(void);
-extern int windows_sapp_depth_format(void);
-int sapp_depth_format(void) {
+extern sapp_pixel_format linux_sapp_depth_format(void);
+extern sapp_pixel_format windows_sapp_depth_format(void);
+sapp_pixel_format sapp_depth_format(void) {
     if (IsLinux()) {
         return linux_sapp_depth_format();
     }
@@ -867,6 +867,14 @@ sg_pipeline sg_make_pipeline(const sg_pipeline_desc* desc) {
         return windows_sg_make_pipeline(desc);
     }
 }
+
+#if 0
+/* Legacy attachments-handle API.
+ *
+ * Newer upstream sokol_gfx versions model attachments as a plain struct inside
+ * sg_pass and don't expose sg_make_attachments/sg_attachments_desc APIs.
+ * The following wrappers are kept disabled to avoid build breaks.
+ */
 
 extern sg_attachments linux_sg_make_attachments(const sg_attachments_desc* desc);
 extern sg_attachments windows_sg_make_attachments(const sg_attachments_desc* desc);
@@ -2255,4 +2263,6 @@ sg_gl_attachments_info sg_gl_query_attachments_info(sg_attachments atts) {
         return windows_sg_gl_query_attachments_info(atts);
     }
 }
+
+#endif /* legacy attachments-handle API */
 

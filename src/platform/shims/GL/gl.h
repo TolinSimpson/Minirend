@@ -40,8 +40,6 @@ typedef char GLchar;
 typedef int64_t GLint64;
 typedef uint64_t GLuint64;
 typedef struct __GLsync *GLsync;
-typedef ptrdiff_t GLsizeiptr;
-typedef ptrdiff_t GLintptr;
 
 /* ============================================================================
  * Boolean Values

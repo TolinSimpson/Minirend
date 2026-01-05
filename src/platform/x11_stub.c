@@ -2,7 +2,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
 #include <X11/Xcursor/Xcursor.h>
-#include <X11/extensions/XKBstr.h>
+#include <X11/XKBlib.h>
 #include <X11/extensions/XInput2.h>
 #include <stddef.h>
 #include <dlfcn.h>

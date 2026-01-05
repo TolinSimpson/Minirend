@@ -24,6 +24,10 @@ SRCS       = \
 	$(SRC_DIR)/sokol_main.c \
 	$(SRC_DIR)/js_engine.c \
 	$(SRC_DIR)/dom_bindings.c \
+	$(SRC_DIR)/dom_runtime.c \
+	$(SRC_DIR)/input.c \
+	$(SRC_DIR)/ui_tree.c \
+	$(SRC_DIR)/modest_adapter.c \
 	$(SRC_DIR)/renderer.c \
 	$(SRC_DIR)/webgl_bindings.c \
 	$(SRC_DIR)/canvas_bindings.c \

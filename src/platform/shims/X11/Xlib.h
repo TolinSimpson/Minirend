@@ -37,6 +37,17 @@ typedef int Bool;
 typedef int Status;
 typedef char* XPointer;
 
+/* Error handler and compose status (needed by x11_stub.c) */
+/* NOTE: XErrorEvent is defined further below in this shim. We don't need an
+ * exact signature here; x11_stub.c only stores and forwards the function ptr.
+ */
+typedef int (*XErrorHandler)(Display* display, void* error_event);
+
+typedef struct {
+    XPointer compose_ptr;
+    int chars_matched;
+} XComposeStatus;
+
 #ifndef True
 #define True 1
 #endif

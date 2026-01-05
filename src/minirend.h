@@ -42,6 +42,7 @@ int        minirend_js_eval_file(JSContext *ctx, const char *path);
 
 /* DOM / window bindings (dom_bindings.c) */
 void minirend_dom_init(JSContext *ctx, MinirendApp *app);
+void minirend_dom_set_viewport(JSContext *ctx, int width, int height);
 
 /* Renderer / HTML (renderer.c) */
 void minirend_renderer_init(MinirendApp *app);
