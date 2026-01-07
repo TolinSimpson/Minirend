@@ -7,7 +7,7 @@
 /* A small native UI tree abstraction.
  *
  * Today this is a stub backing hit-testing for DOM events.
- * Later it will be fed by Modest layout and/or platform-native widgets.
+ * Later it will be fed by Lexbor layout and/or platform-native widgets.
  */
 
 typedef struct MinirendRect {

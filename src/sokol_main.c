@@ -27,7 +27,7 @@
 #include "input.h"
 #include "dom_runtime.h"
 #include "ui_tree.h"
-#include "modest_adapter.h"
+#include "lexbor_adapter.h"
 
 /* =========================================================================
  * Application State
@@ -230,7 +230,7 @@ static void cleanup_cb(void) {
         minirend_input_shutdown(g_state.js_ctx);
         minirend_dom_runtime_shutdown(g_state.js_ctx);
     }
-    minirend_modest_adapter_shutdown();
+    minirend_lexbor_adapter_shutdown();
     minirend_ui_tree_shutdown();
 
     if (g_state.js_rt || g_state.js_ctx) {

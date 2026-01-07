@@ -28,7 +28,7 @@ You build **one native binary** that:
 - **Cosmopolitan Libc** – build‑once, run‑anywhere C runtime  
 - **Sokol** – cross‑platform graphics abstraction (handles D3D11, Metal, OpenGL, WebGPU backends automatically)  
 - **QuickJS** – embeddable JavaScript engine  
-- **Modest** – HTML/CSS rendering (planned integration, needs input detection)  
+- **Lexbor** – fast HTML/CSS parsing and DOM construction  
 
 ### Feature Comparison
 

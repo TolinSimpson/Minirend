@@ -2,7 +2,7 @@
 
 #include "minirend.h"
 
-/* Placeholder renderer that will eventually integrate Modest.
+/* Placeholder renderer that will eventually integrate Lexbor layout.
  * For now, it clears the background and can be extended to draw
  * simple UI elements. WebGL canvases render directly via OpenGL.
  */
@@ -16,8 +16,9 @@ void
 minirend_renderer_load_html(MinirendApp *app, const char *path) {
     (void)app;
     (void)path;
-    /* TODO: use Modest to parse and lay out HTML, then draw into an
-     * offscreen surface / texture which can be composited in draw().
+    /* TODO: use Lexbor to parse HTML and the layout engine to compute
+     * positions, then draw into an offscreen surface / texture which
+     * can be composited in draw().
      */
 }
 

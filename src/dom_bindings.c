@@ -6,7 +6,7 @@
 
 #include "dom_runtime.h"
 #include "ui_tree.h"
-#include "modest_adapter.h"
+#include "lexbor_adapter.h"
 
 static int32_t g_next_node_id = 3; /* 1=document, 2=body */
 
@@ -85,8 +85,8 @@ static JSValue js_element_appendChild(JSContext *ctx, JSValueConst this_val, int
     JS_SetPropertyUint32(ctx, children, len, JS_DupValue(ctx, child));
     JS_FreeValue(ctx, children);
 
-    /* TODO: when Modest is enabled, mark layout dirty and rebuild. */
-    minirend_modest_adapter_rebuild_layout(ctx);
+    /* TODO: mark layout dirty and rebuild when layout engine is implemented. */
+    (void)ctx;
 
     return child; /* caller owns */
 }
@@ -105,7 +105,7 @@ void minirend_dom_init(JSContext *ctx, MinirendApp *app) {
 
     /* Core subsystems used by input/hit-test. */
     minirend_ui_tree_init();
-    minirend_modest_adapter_init();
+    minirend_lexbor_adapter_init();
 
     JSValue global_obj = JS_GetGlobalObject(ctx);
 
