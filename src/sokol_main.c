@@ -174,6 +174,7 @@ static void init_cb(void) {
     minirend_canvas_register(g_state.js_ctx, NULL);
     minirend_fetch_register(g_state.js_ctx);
     minirend_storage_register(g_state.js_ctx);
+    minirend_audio_register(g_state.js_ctx);
 
     /* Initialize input system after DOM/runtime are available. */
     minirend_input_init(g_state.js_ctx);
@@ -207,6 +208,9 @@ static void frame_cb(void) {
     if (g_state.js_ctx) {
         minirend_js_tick_frame(g_state.js_ctx);
     }
+
+    /* Tick audio engine (feeds saudio_push) */
+    minirend_audio_tick();
     
     /* Begin render pass */
     sg_pass pass = {
@@ -230,6 +234,7 @@ static void cleanup_cb(void) {
         minirend_input_shutdown(g_state.js_ctx);
         minirend_dom_runtime_shutdown(g_state.js_ctx);
     }
+    minirend_audio_shutdown();
     minirend_lexbor_adapter_shutdown();
     minirend_ui_tree_shutdown();
 

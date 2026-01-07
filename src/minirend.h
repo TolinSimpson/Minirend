@@ -70,6 +70,11 @@ void minirend_fetch_register(JSContext *ctx);
 /* Storage (storage_bindings.c) */
 void minirend_storage_register(JSContext *ctx);
 
+/* Audio (audio_bindings.c) */
+void minirend_audio_register(JSContext *ctx);
+void minirend_audio_tick(void);
+void minirend_audio_shutdown(void);
+
 #endif /* MINIREND_H */
 
 

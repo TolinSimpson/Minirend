@@ -39,7 +39,10 @@ SRCS       = \
 	$(SRC_DIR)/webgl_bindings.c \
 	$(SRC_DIR)/canvas_bindings.c \
 	$(SRC_DIR)/fetch_bindings.c \
-	$(SRC_DIR)/storage_bindings.c
+	$(SRC_DIR)/storage_bindings.c \
+	$(SRC_DIR)/audio_engine.c \
+	$(SRC_DIR)/audio_buffer.c \
+	$(SRC_DIR)/audio_bindings.c
 
 OBJS       = $(SRCS:.c=.o)
 

@@ -202,10 +202,10 @@ See `src/` and `Makefile` for deeper integration details.
 | Feature | Status |
 |---------|--------|
 | Native audio backend (sokol_audio) | ✅ |
-| Web Audio API bindings | ❌ |
-| `AudioContext` | ❌ |
-| Audio playback | ❌ |
-| Audio spatialization | ❌ |
+| Web Audio API bindings | ✅ |
+| `AudioContext` | ✅ |
+| Audio playback | ✅ |
+| Audio spatialization | ✅ |
 
 ### WebGL 1.0 / 2.0
 
@@ -289,3 +289,106 @@ See `src/` and `Makefile` for deeper integration details.
 | `GPUQueue` | ❌ |
 
 > **Note:** Sokol's internal WebGPU backend is present but no JavaScript bindings are exposed.
+
+### Native UI Integration (via Sokol)
+
+#### Application Identity & Branding
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Window title bar icon | ✅ | — | ✅ | `sapp_set_icon` |
+| Taskbar/dock icon | ✅ | ✅ | ✅ | Runtime-settable |
+| Built-in default icon | ✅ | ✅ | ✅ | Rainbow 'S' fallback |
+| Favicon (HTML5 target) | ✅ | ✅ | ✅ | Browser tab icon |
+| Executable/bundle icon | ❌ | ❌ | ❌ | Requires OS resources at build time |
+| Dock badge (count) | — | ❌ | — | macOS-specific, not exposed |
+| Taskbar progress | ❌ | — | — | Windows-specific, not exposed |
+| Taskbar overlay icon | ❌ | — | — | Windows-specific, not exposed |
+| Jump lists | ❌ | — | — | Windows-specific, not exposed |
+| Dock menu | — | ❌ | — | macOS-specific, not exposed |
+
+> **Note:** macOS has no window title bar icon; `sapp_set_icon` changes the dock icon instead.
+
+#### Window Management
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Window creation | ✅ | ✅ | ✅ | Single window only |
+| Window title | ✅ | ✅ | ✅ | `sapp_set_window_title` |
+| Fullscreen toggle | ✅ | ✅ | ✅ | `sapp_toggle_fullscreen` |
+| Window resize events | ✅ | ✅ | ✅ | `SAPP_EVENTTYPE_RESIZED` |
+| Minimize (iconify) events | ✅ | ✅ | ✅ | `SAPP_EVENTTYPE_ICONIFIED` |
+| Restore events | ✅ | ✅ | ✅ | `SAPP_EVENTTYPE_RESTORED` |
+| Focus/unfocus events | ✅ | ✅ | ✅ | `SAPP_EVENTTYPE_FOCUSED/UNFOCUSED` |
+| Quit request handling | ✅ | ✅ | ✅ | `sapp_request_quit`, `sapp_cancel_quit` |
+| Programmatic minimize | ❌ | ❌ | ❌ | Not exposed by Sokol |
+| Programmatic maximize | ❌ | ❌ | ❌ | Not exposed by Sokol |
+| Window position get/set | ❌ | ❌ | ❌ | Not exposed by Sokol |
+| Window size set | ❌ | ❌ | ❌ | Read-only via `sapp_width/height` |
+| Multiple windows | ❌ | ❌ | ❌ | Sokol limitation |
+| Always-on-top | ❌ | ❌ | ❌ | Not exposed by Sokol |
+| Borderless/frameless | ❌ | ❌ | ❌ | Not exposed at runtime |
+
+#### Display & Rendering
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| High-DPI support | ✅ | ✅ | ✅ | `sapp_dpi_scale` |
+| DPI scale query | ✅ | ✅ | ✅ | Per-frame updates |
+| VSync | ✅ | ✅ | ✅ | Configured at startup |
+| MSAA sample count | ✅ | ✅ | ✅ | Configured at startup |
+| Frame duration query | ✅ | ✅ | ✅ | `sapp_frame_duration` |
+| Multi-monitor support | ❌ | ❌ | ❌ | Not exposed by Sokol |
+
+#### Mouse & Cursor
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Mouse click detection | ✅ | ✅ | ✅ | Left, middle, right buttons |
+| Mouse move tracking | ✅ | ✅ | ✅ | Absolute coordinates |
+| Mouse scroll (wheel) | ✅ | ✅ | ✅ | X and Y axis |
+| Show/hide cursor | ✅ | ✅ | ✅ | `sapp_show_mouse` |
+| Lock/capture mouse | ✅ | ✅ | ✅ | `sapp_lock_mouse` (FPS-style) |
+| Custom cursor type | ✅ | ✅ | ✅ | `sapp_set_mouse_cursor` |
+| Custom cursor image | ✅ | ✅ | ✅ | `sapp_bind_mouse_cursor_image` |
+| Mouse enter/leave | ✅ | ✅ | ✅ | Window boundary events |
+
+#### Clipboard
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Copy to clipboard | ✅ | ✅ | ✅ | `sapp_set_clipboard_string` |
+| Paste from clipboard | ✅ | ✅ | ✅ | `sapp_get_clipboard_string` |
+| Clipboard paste event | ✅ | ✅ | ✅ | `SAPP_EVENTTYPE_CLIPBOARD_PASTED` |
+| Image clipboard | ❌ | ❌ | ❌ | Text only |
+
+#### File Operations
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Drag & drop files | ✅ | ✅ | ✅ | `SAPP_EVENTTYPE_FILES_DROPPED` |
+| Get dropped file paths | ✅ | ✅ | ✅ | `sapp_get_dropped_file_path` |
+| Native file dialogs | ❌ | ❌ | ❌ | Not provided |
+| Native folder picker | ❌ | ❌ | ❌ | Not provided |
+
+#### Native Controls (WIP)
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Native text input | ❌ | ❌ | ❌ | Scaffolding only |
+| Native button | ❌ | ❌ | ❌ | Scaffolding only |
+| Native select/dropdown | ❌ | ❌ | ❌ | Scaffolding only |
+| Native menus | ❌ | ❌ | ❌ | Not implemented |
+| System tray | ❌ | ❌ | ❌ | Not implemented |
+| Native message boxes | ❌ | ❌ | ❌ | Not implemented |
+
+#### Platform-Specific Access
+
+| Feature | Windows | macOS | Linux | Notes |
+|---------|---------|-------|-------|-------|
+| Raw window handle | ✅ (HWND) | ✅ (NSWindow) | ✅ (X11 Window) | For native extensions |
+| D3D11 device access | ✅ | — | — | `sapp_d3d11_get_device` |
+| Metal device access | — | ✅ | — | `sapp_metal_get_device` |
+| OpenGL context | ✅ | ✅ | ✅ | `sapp_gl_get_framebuffer` |
+
+> **Note:** Native UI controls are currently scaffolding (`src/platform/native_ui.h`). Future versions may map HTML elements to real OS widgets.
