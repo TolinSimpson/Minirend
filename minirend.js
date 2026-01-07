@@ -69,19 +69,19 @@ function handleStatus(req, res) {
 
   const cosmoPath = path.join(ROOT, "third_party", "cosmocc", "bin", "cosmocc");
   const quickjsPath = path.join(ROOT, "third_party", "quickjs");
-  const modestPath = path.join(ROOT, "third_party", "modest");
+  const lexborPath = path.join(ROOT, "third_party", "lexbor");
   const sokolPath = path.join(ROOT, "third_party", "sokol");
   const platformPath = path.join(ROOT, "src", "platform");
 
   const status = {
     cosmocc: fs.existsSync(cosmoPath) || fs.existsSync(cosmoPath + ".exe"),
     quickjs: fs.existsSync(quickjsPath),
-    modest: fs.existsSync(modestPath),
+    lexbor: fs.existsSync(lexborPath),
     sokol: fs.existsSync(sokolPath),
     platform: fs.existsSync(platformPath),
   };
 
-  status.ready = status.cosmocc && status.quickjs && status.sokol && status.platform;
+  status.ready = status.cosmocc && status.quickjs && status.lexbor && status.sokol && status.platform;
 
   return sendJson(res, 200, { ok: true, ...status });
 }

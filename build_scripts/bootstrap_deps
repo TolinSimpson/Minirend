@@ -18,7 +18,7 @@ set -euo pipefail
 # -------------------------------------------------
 # This script:
 #   - Downloads Cosmopolitan's cosmocc toolchain if missing
-#   - Clones QuickJS and Modest into third_party/
+#   - Clones QuickJS and Lexbor into third_party/
 #
 # Usage:
 #   ./build_scripts/bootstrap_deps
@@ -124,11 +124,11 @@ else
   git clone --depth 1 https://github.com/bellard/quickjs.git quickjs
 fi
 
-if [[ -d modest ]]; then
-  echo "==> Modest already present in third_party/modest"
+if [[ -d lexbor ]]; then
+  echo "==> Lexbor already present in third_party/lexbor"
 else
-  echo "==> Cloning Modest into third_party/modest..."
-  git clone --depth 1 https://github.com/lexborisov/Modest.git modest
+  echo "==> Cloning Lexbor into third_party/lexbor..."
+  git clone --depth 1 https://github.com/nicholasrobinson/lexbor.git lexbor
 fi
 
 # Check if sokol headers exist
@@ -158,8 +158,8 @@ echo "==> [STAGE] Dependencies ready"
 echo "All core third-party dependencies are prepared:"
 echo "  - Cosmopolitan toolchain: $COSMO_BIN"
 echo "  - QuickJS: $ROOT/third_party/quickjs"
-echo "  - Modest:  $ROOT/third_party/modest"
+echo "  - Lexbor:  $ROOT/third_party/lexbor"
 echo "  - Sokol:   $ROOT/third_party/sokol"
 echo
-echo "Ready to build. Run: ./scripts/build"
+echo "Ready to build. Run: ./build_scripts/build"
 

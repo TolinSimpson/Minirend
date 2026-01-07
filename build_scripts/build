@@ -18,7 +18,7 @@ set -euo pipefail
 # ---------------------------------------------------------
 # This script:
 #   - Ensures Cosmopolitan's cosmocc toolchain is present (downloads if needed)
-#   - Ensures QuickJS and Modest are cloned into third_party
+#   - Ensures QuickJS and Lexbor are cloned into third_party
 #   - Builds the project using Cosmopolitan's make and outputs dist/minirend
 #
 # Usage:
