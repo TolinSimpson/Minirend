@@ -127,7 +127,7 @@
     if (lower.includes("extracting") || lower.includes("unzip") || lower.includes("expand-archive")) {
       return BUILD_STAGES.EXTRACTING_COSMOCC;
     }
-    if (lower.includes("cloning quickjs") || lower.includes("cloning modest") || lower.includes("git clone")) {
+    if (lower.includes("cloning quickjs") || lower.includes("cloning lexbor") || lower.includes("git clone")) {
       return BUILD_STAGES.CLONING_DEPS;
     }
     if (lower.includes("quickjs") && (lower.includes("compiling") || lower.includes(".o:"))) {
@@ -427,14 +427,16 @@
         buildLog.textContent = "✓ All dependencies ready. Click 'Run build' to compile.\n\nDependencies:\n" +
           `  - Cosmopolitan: ${status.cosmocc ? "✓" : "✗"}\n` +
           `  - QuickJS: ${status.quickjs ? "✓" : "✗"}\n` +
+          `  - Lexbor: ${status.lexbor ? "✓" : "✗"}\n` +
           `  - Sokol: ${status.sokol ? "✓" : "✗"}\n` +
-          `  - Shims: ${status.shims ? "✓" : "✗"}`;
+          `  - Platform: ${status.platform ? "✓" : "✗"}`;
       } else {
         buildLog.textContent = "Dependencies will be downloaded on first build.\n\nStatus:\n" +
           `  - Cosmopolitan: ${status.cosmocc ? "✓ ready" : "⬇ will download (~14MB)"}\n` +
           `  - QuickJS: ${status.quickjs ? "✓ ready" : "⬇ will clone"}\n` +
+          `  - Lexbor: ${status.lexbor ? "✓ ready" : "⬇ will clone"}\n` +
           `  - Sokol: ${status.sokol ? "✓ ready" : "⬇ will download"}\n` +
-          `  - Shims: ${status.shims ? "✓ ready" : "○ will create"}`;
+          `  - Platform: ${status.platform ? "✓ ready" : "○ will create"}`;
       }
     } catch (err) {
       buildLog.textContent = "(Could not check dependency status - server may not be running)";
