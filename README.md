@@ -40,7 +40,7 @@ You build **one native binary** that:
 | **Built‑in dev tooling** | ✅ | ✅ | ✅ | ✅ |
 | **JS, HTML, CSS Support** | ✅ + C | ✅ | ✅ | ✅ + Go |
 | **Single Cross-platform Binary** | ✅ | ❌ | ❌ | ❌ |
-| **Custom Browser** | ✅ | ❌ | ❌ | ❌ |
+| **Custom Web Renderer** | ✅ | ❌ | ❌ | ❌ |
 | **Native UI integration** | ❌ (wip) | ✅ (basic) | ✅ | ✅ |
 
 ## Folder Layout
