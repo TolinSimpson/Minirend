@@ -235,3 +235,16 @@
 #define sg_gl_query_shader_info windows_sg_gl_query_shader_info
 #define sg_gl_query_attachments_info windows_sg_gl_query_attachments_info
 #define sg_gl_query_view_info windows_sg_gl_query_view_info
+
+/* sokol_audio symbol renames */
+#define saudio_setup windows_saudio_setup
+#define saudio_shutdown windows_saudio_shutdown
+#define saudio_isvalid windows_saudio_isvalid
+#define saudio_userdata windows_saudio_userdata
+#define saudio_query_desc windows_saudio_query_desc
+#define saudio_sample_rate windows_saudio_sample_rate
+#define saudio_buffer_frames windows_saudio_buffer_frames
+#define saudio_channels windows_saudio_channels
+#define saudio_suspended windows_saudio_suspended
+#define saudio_expect windows_saudio_expect
+#define saudio_push windows_saudio_push

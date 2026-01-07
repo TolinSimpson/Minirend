@@ -235,3 +235,16 @@
 #define sg_gl_query_shader_info linux_sg_gl_query_shader_info
 #define sg_gl_query_attachments_info linux_sg_gl_query_attachments_info
 #define sg_gl_query_view_info linux_sg_gl_query_view_info
+
+/* sokol_audio symbol renames */
+#define saudio_setup linux_saudio_setup
+#define saudio_shutdown linux_saudio_shutdown
+#define saudio_isvalid linux_saudio_isvalid
+#define saudio_userdata linux_saudio_userdata
+#define saudio_query_desc linux_saudio_query_desc
+#define saudio_sample_rate linux_saudio_sample_rate
+#define saudio_buffer_frames linux_saudio_buffer_frames
+#define saudio_channels linux_saudio_channels
+#define saudio_suspended linux_saudio_suspended
+#define saudio_expect linux_saudio_expect
+#define saudio_push linux_saudio_push

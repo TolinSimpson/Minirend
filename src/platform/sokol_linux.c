@@ -11,3 +11,4 @@
 #include "sokol_linux.h"
 #include "sokol_app.h"
 #include "sokol_gfx.h"
+#include "sokol_audio.h"

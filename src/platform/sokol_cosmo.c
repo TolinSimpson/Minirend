@@ -1,5 +1,6 @@
 #include <sokol_app.h>
 #include <sokol_gfx.h>
+#include <sokol_audio.h>
 #include <cosmo.h>
 #pragma GCC diagnostic ignored "-Wreturn-type"
 
@@ -2265,4 +2266,133 @@ sg_gl_attachments_info sg_gl_query_attachments_info(sg_attachments atts) {
 }
 
 #endif /* legacy attachments-handle API */
+
+/* ============================================================================
+ * SOKOL AUDIO DISPATCHERS
+ * ============================================================================ */
+
+extern void linux_saudio_setup(const saudio_desc* desc);
+extern void windows_saudio_setup(const saudio_desc* desc);
+void saudio_setup(const saudio_desc* desc) {
+    if (IsLinux()) {
+        linux_saudio_setup(desc);
+        return;
+    }
+    if (IsWindows()) {
+        windows_saudio_setup(desc);
+        return;
+    }
+}
+
+extern void linux_saudio_shutdown(void);
+extern void windows_saudio_shutdown(void);
+void saudio_shutdown(void) {
+    if (IsLinux()) {
+        linux_saudio_shutdown();
+        return;
+    }
+    if (IsWindows()) {
+        windows_saudio_shutdown();
+        return;
+    }
+}
+
+extern bool linux_saudio_isvalid(void);
+extern bool windows_saudio_isvalid(void);
+bool saudio_isvalid(void) {
+    if (IsLinux()) {
+        return linux_saudio_isvalid();
+    }
+    if (IsWindows()) {
+        return windows_saudio_isvalid();
+    }
+}
+
+extern void* linux_saudio_userdata(void);
+extern void* windows_saudio_userdata(void);
+void* saudio_userdata(void) {
+    if (IsLinux()) {
+        return linux_saudio_userdata();
+    }
+    if (IsWindows()) {
+        return windows_saudio_userdata();
+    }
+}
+
+extern saudio_desc linux_saudio_query_desc(void);
+extern saudio_desc windows_saudio_query_desc(void);
+saudio_desc saudio_query_desc(void) {
+    if (IsLinux()) {
+        return linux_saudio_query_desc();
+    }
+    if (IsWindows()) {
+        return windows_saudio_query_desc();
+    }
+}
+
+extern int linux_saudio_sample_rate(void);
+extern int windows_saudio_sample_rate(void);
+int saudio_sample_rate(void) {
+    if (IsLinux()) {
+        return linux_saudio_sample_rate();
+    }
+    if (IsWindows()) {
+        return windows_saudio_sample_rate();
+    }
+}
+
+extern int linux_saudio_buffer_frames(void);
+extern int windows_saudio_buffer_frames(void);
+int saudio_buffer_frames(void) {
+    if (IsLinux()) {
+        return linux_saudio_buffer_frames();
+    }
+    if (IsWindows()) {
+        return windows_saudio_buffer_frames();
+    }
+}
+
+extern int linux_saudio_channels(void);
+extern int windows_saudio_channels(void);
+int saudio_channels(void) {
+    if (IsLinux()) {
+        return linux_saudio_channels();
+    }
+    if (IsWindows()) {
+        return windows_saudio_channels();
+    }
+}
+
+extern bool linux_saudio_suspended(void);
+extern bool windows_saudio_suspended(void);
+bool saudio_suspended(void) {
+    if (IsLinux()) {
+        return linux_saudio_suspended();
+    }
+    if (IsWindows()) {
+        return windows_saudio_suspended();
+    }
+}
+
+extern int linux_saudio_expect(void);
+extern int windows_saudio_expect(void);
+int saudio_expect(void) {
+    if (IsLinux()) {
+        return linux_saudio_expect();
+    }
+    if (IsWindows()) {
+        return windows_saudio_expect();
+    }
+}
+
+extern int linux_saudio_push(const float* frames, int num_frames);
+extern int windows_saudio_push(const float* frames, int num_frames);
+int saudio_push(const float* frames, int num_frames) {
+    if (IsLinux()) {
+        return linux_saudio_push(frames, num_frames);
+    }
+    if (IsWindows()) {
+        return windows_saudio_push(frames, num_frames);
+    }
+}
 
