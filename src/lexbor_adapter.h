@@ -21,6 +21,8 @@
 typedef struct JSContext JSContext;
 typedef struct lxb_html_document lxb_html_document_t;
 typedef struct lxb_dom_node lxb_dom_node_t;
+typedef struct lxb_css_parser lxb_css_parser_t;
+typedef struct lxb_selectors lxb_selectors_t;
 
 /* Opaque handle for parsed documents */
 typedef struct LexborDocument LexborDocument;
@@ -40,6 +42,11 @@ void minirend_lexbor_document_destroy(LexborDocument *doc);
 
 /* Get the underlying Lexbor HTML document (for direct API access). */
 lxb_html_document_t *minirend_lexbor_get_lxb_document(LexborDocument *doc);
+
+/* Get reusable CSS parser / selectors engine instances associated with doc.
+ * Returned pointers are owned by LexborDocument; do not destroy them. */
+lxb_css_parser_t *minirend_lexbor_get_css_parser(LexborDocument *doc);
+lxb_selectors_t  *minirend_lexbor_get_selectors(LexborDocument *doc);
 
 /* Get the document's body element, or NULL if not present. */
 lxb_dom_node_t *minirend_lexbor_get_body(LexborDocument *doc);

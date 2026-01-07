@@ -82,6 +82,14 @@ lxb_html_document_t *minirend_lexbor_get_lxb_document(LexborDocument *doc) {
     return doc ? doc->html_doc : NULL;
 }
 
+lxb_css_parser_t *minirend_lexbor_get_css_parser(LexborDocument *doc) {
+    return doc ? doc->css_parser : NULL;
+}
+
+lxb_selectors_t *minirend_lexbor_get_selectors(LexborDocument *doc) {
+    return doc ? doc->selectors : NULL;
+}
+
 lxb_dom_node_t *minirend_lexbor_get_body(LexborDocument *doc) {
     if (!doc || !doc->html_doc) return NULL;
     return lxb_dom_interface_node(lxb_html_document_body_element(doc->html_doc));

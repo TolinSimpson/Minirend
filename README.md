@@ -155,20 +155,20 @@ See `src/` and `Makefile` for deeper integration details.
 | Stylesheet parsing | ✅ |
 | Selector matching | ✅ |
 | Inline style reading | ✅ |
-| Computed style resolution | ❌ |
+| Computed style resolution | ✅ |
 | CSS variables | ❌ |
 | Media queries | ❌ |
 
-### HTML/CSS Rendering
+### HTML/CSS Rendering (Clay & stb_truetype)
 
 | Feature | Status |
 |---------|--------|
-| Box model layout | ❌ |
-| Text rendering | ❌ |
-| Flex / Grid layout | ❌ |
-| Background / borders | ❌ |
-| CSS transforms | ❌ |
-| DOM-to-texture compositing | ❌ |
+| Box model layout | ✅ |
+| Text rendering | ✅ |
+| Flex / Grid layout | ✅ |
+| Background / borders | ✅ |
+| CSS transforms | ✅ |
+| DOM-to-texture compositing | ✅ |
 
 ### Windowing (Sokol)
 

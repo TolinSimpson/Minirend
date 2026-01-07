@@ -46,8 +46,12 @@ void minirend_dom_set_viewport(JSContext *ctx, int width, int height);
 
 /* Renderer / HTML (renderer.c) */
 void minirend_renderer_init(MinirendApp *app);
+void minirend_renderer_shutdown(void);
 void minirend_renderer_load_html(MinirendApp *app, const char *path);
 void minirend_renderer_draw(MinirendApp *app);
+void minirend_renderer_set_viewport(float width, float height);
+int  minirend_renderer_load_font(const char *path);
+bool minirend_renderer_add_stylesheet(const char *css, size_t len);
 
 /* WebGL / Canvas (webgl_bindings.c, canvas_bindings.c) */
 void minirend_webgl_register(JSContext *ctx, MinirendApp *app);

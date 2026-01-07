@@ -28,6 +28,13 @@ SRCS       = \
 	$(SRC_DIR)/input.c \
 	$(SRC_DIR)/ui_tree.c \
 	$(SRC_DIR)/lexbor_adapter.c \
+	$(SRC_DIR)/style_resolver.c \
+	$(SRC_DIR)/layout_engine.c \
+	$(SRC_DIR)/box_renderer.c \
+	$(SRC_DIR)/font_cache.c \
+	$(SRC_DIR)/text_renderer.c \
+	$(SRC_DIR)/transform.c \
+	$(SRC_DIR)/compositor.c \
 	$(SRC_DIR)/renderer.c \
 	$(SRC_DIR)/webgl_bindings.c \
 	$(SRC_DIR)/canvas_bindings.c \
@@ -358,6 +365,7 @@ CFLAGS    += -I$(SRC_DIR) -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter
 CFLAGS    += -I$(QJS_DIR)
 CFLAGS    += -I$(SOKOL_DIR) -I$(PLATFORM_DIR)
 CFLAGS    += -I$(LEXBOR_DIR)/source
+CFLAGS    += -Ithird_party/clay -Ithird_party/stb
 
 # Link in third‑party static libraries.
 LDLIBS    += $(QJS_LIB) $(LEXBOR_LIB)
