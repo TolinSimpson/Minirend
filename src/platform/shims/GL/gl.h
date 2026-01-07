@@ -447,7 +447,9 @@ typedef struct __GLsync *GLsync;
 #define GL_INFO_LOG_LENGTH        0x8B84
 #define GL_ATTACHED_SHADERS       0x8B85
 #define GL_ACTIVE_UNIFORMS        0x8B86
+#define GL_ACTIVE_UNIFORM_MAX_LENGTH 0x8B87
 #define GL_ACTIVE_ATTRIBUTES      0x8B89
+#define GL_ACTIVE_ATTRIBUTE_MAX_LENGTH 0x8B8A
 #define GL_CURRENT_PROGRAM        0x8B8D
 #define GL_SHADER_TYPE            0x8B4F
 

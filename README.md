@@ -15,6 +15,7 @@ You build **one native binary** that:
 - Loads your HTML/CSS/JS app  
 - Provides a DOM‑like API, `localStorage`, `fetch` (basic), and WebGL hooks  
 - Bundle custom C libraries with JS interop
+- Supports graphic via OpenGL & WebGPU (wip)
 
 ## Requirements
 
@@ -231,7 +232,7 @@ See `src/` and `Makefile` for deeper integration details.
 | `uniform[1234][if]` | ✅ |
 | `uniform[1234]fv` | ✅ |
 | `uniformMatrix[234]fv` | ✅ |
-| `getActiveUniform` / `getActiveAttrib` | ❌ |
+| `getActiveUniform` / `getActiveAttrib` | ✅ |
 | **Drawing** | |
 | `drawArrays` / `drawElements` | ✅ |
 | `drawArraysInstanced` / `drawElementsInstanced` | ✅ |
@@ -242,15 +243,15 @@ See `src/` and `Makefile` for deeper integration details.
 | `activeTexture` | ✅ |
 | `texParameteri` / `texParameterf` | ✅ |
 | `generateMipmap` | ✅ |
-| `texImage2D` / `texSubImage2D` | ❌ |
-| `copyTexImage2D` / `copyTexSubImage2D` | ❌ |
+| `texImage2D` / `texSubImage2D` | ✅ |
+| `copyTexImage2D` / `copyTexSubImage2D` | ✅ |
 | **Framebuffers** | |
-| `createFramebuffer` / `bindFramebuffer` / `deleteFramebuffer` | ❌ |
-| `framebufferTexture2D` / `framebufferRenderbuffer` | ❌ |
-| `checkFramebufferStatus` | ❌ |
+| `createFramebuffer` / `bindFramebuffer` / `deleteFramebuffer` | ✅ |
+| `framebufferTexture2D` / `framebufferRenderbuffer` | ✅ |
+| `checkFramebufferStatus` | ✅ |
 | **Renderbuffers** | |
-| `createRenderbuffer` / `bindRenderbuffer` / `deleteRenderbuffer` | ❌ |
-| `renderbufferStorage` / `renderbufferStorageMultisample` | ❌ |
+| `createRenderbuffer` / `bindRenderbuffer` / `deleteRenderbuffer` | ✅ |
+| `renderbufferStorage` / `renderbufferStorageMultisample` | ✅ |
 | **State** | |
 | `enable` / `disable` / `isEnabled` | ✅ |
 | `viewport` / `scissor` / `depthRange` | ✅ |
@@ -261,19 +262,19 @@ See `src/` and `Makefile` for deeper integration details.
 | `cullFace` / `frontFace` | ✅ |
 | `colorMask` | ✅ |
 | `pixelStorei` | ✅ |
-| `stencilFunc` / `stencilOp` / `stencilMask` | ❌ |
+| `stencilFunc` / `stencilOp` / `stencilMask` | ✅ |
 | **Read** | |
-| `readPixels` | ❌ |
+| `readPixels` | ✅ |
 | **Query** | |
 | `getParameter` / `getError` | ✅ |
 | `getContextAttributes` | ✅ |
 | `getSupportedExtensions` / `getExtension` | ✅ |
 | **WebGL2 Specific** | |
-| Uniform buffer objects (UBO) | ❌ |
-| Transform feedback | ❌ |
-| Sync objects | ❌ |
-| Sampler objects | ❌ |
-| Query objects | ❌ |
+| Uniform buffer objects (UBO) | ✅ |
+| Transform feedback | ✅ |
+| Sync objects | ✅ |
+| Sampler objects | ✅ |
+| Query objects | ✅ |
 
 ### WebGPU
 
