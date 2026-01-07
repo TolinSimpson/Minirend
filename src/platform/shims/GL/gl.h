@@ -190,6 +190,8 @@ typedef struct __GLsync *GLsync;
 #define GL_TEXTURE_SWIZZLE_B      0x8E44
 #define GL_TEXTURE_SWIZZLE_A      0x8E45
 #define GL_TEXTURE_BORDER_COLOR   0x1004
+#define GL_TEXTURE_IMMUTABLE_FORMAT 0x912F
+#define GL_TEXTURE_IMMUTABLE_LEVELS 0x82DF
 
 /* ============================================================================
  * Texture Filter Modes
@@ -607,6 +609,73 @@ typedef struct __GLsync *GLsync;
 #define GL_WAIT_FAILED                0x911D
 #define GL_SYNC_FLUSH_COMMANDS_BIT    0x00000001
 #define GL_TIMEOUT_IGNORED            0xFFFFFFFFFFFFFFFFull
+#define GL_SYNC_CONDITION             0x9113
+#define GL_SYNC_STATUS                0x9114
+#define GL_SYNC_FLAGS                 0x9115
+#define GL_SIGNALED                   0x9119
+#define GL_UNSIGNALED                 0x9118
+
+/* ============================================================================
+ * Query Objects
+ * ============================================================================ */
+
+#define GL_SAMPLES_PASSED                        0x8914
+#define GL_ANY_SAMPLES_PASSED                    0x8C2F
+#define GL_ANY_SAMPLES_PASSED_CONSERVATIVE       0x8D6A
+#define GL_PRIMITIVES_GENERATED                  0x8C87
+#define GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN 0x8C88
+#define GL_TIME_ELAPSED                          0x88BF
+#define GL_TIMESTAMP                             0x8E28
+#define GL_CURRENT_QUERY                         0x8865
+#define GL_QUERY_RESULT                          0x8866
+#define GL_QUERY_RESULT_AVAILABLE                0x8867
+#define GL_QUERY_RESULT_NO_WAIT                  0x9194
+
+/* ============================================================================
+ * Transform Feedback
+ * ============================================================================ */
+
+#define GL_TRANSFORM_FEEDBACK                    0x8E22
+#define GL_TRANSFORM_FEEDBACK_BINDING            0x8E25
+#define GL_TRANSFORM_FEEDBACK_PAUSED             0x8E23
+#define GL_TRANSFORM_FEEDBACK_ACTIVE             0x8E24
+#define GL_INTERLEAVED_ATTRIBS                   0x8C8C
+#define GL_SEPARATE_ATTRIBS                      0x8C8D
+#define GL_TRANSFORM_FEEDBACK_BUFFER_BINDING    0x8C8F
+#define GL_TRANSFORM_FEEDBACK_BUFFER_START      0x8C84
+#define GL_TRANSFORM_FEEDBACK_BUFFER_SIZE       0x8C85
+#define GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS 0x8C80
+#define GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS 0x8C8A
+#define GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS 0x8C8B
+
+/* ============================================================================
+ * Uniform Buffer Objects
+ * ============================================================================ */
+
+#define GL_UNIFORM_BUFFER_BINDING        0x8A28
+#define GL_UNIFORM_BUFFER_START          0x8A29
+#define GL_UNIFORM_BUFFER_SIZE           0x8A2A
+#define GL_MAX_UNIFORM_BUFFER_BINDINGS   0x8A2F
+#define GL_MAX_UNIFORM_BLOCK_SIZE        0x8A30
+#define GL_MAX_COMBINED_UNIFORM_BLOCKS   0x8A2E
+#define GL_MAX_VERTEX_UNIFORM_BLOCKS     0x8A2B
+#define GL_MAX_FRAGMENT_UNIFORM_BLOCKS   0x8A2D
+#define GL_UNIFORM_BLOCK_BINDING         0x8A3F
+#define GL_UNIFORM_BLOCK_DATA_SIZE       0x8A40
+#define GL_UNIFORM_BLOCK_NAME_LENGTH     0x8A41
+#define GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS 0x8A42
+#define GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES 0x8A43
+#define GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER 0x8A44
+#define GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER 0x8A46
+#define GL_UNIFORM_TYPE                  0x8A37
+#define GL_UNIFORM_SIZE                  0x8A38
+#define GL_UNIFORM_NAME_LENGTH           0x8A39
+#define GL_UNIFORM_BLOCK_INDEX           0x8A3A
+#define GL_UNIFORM_OFFSET                0x8A3B
+#define GL_UNIFORM_ARRAY_STRIDE          0x8A3C
+#define GL_UNIFORM_MATRIX_STRIDE         0x8A3D
+#define GL_UNIFORM_IS_ROW_MAJOR          0x8A3E
+#define GL_INVALID_INDEX                 0xFFFFFFFFu
 
 /* ============================================================================
  * Debug

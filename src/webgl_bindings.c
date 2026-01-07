@@ -2540,6 +2540,1724 @@ static JSValue js_webgl_generateMipmap(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+/* Helper to extract pixel data from various sources */
+static uint8_t *get_texture_data(JSContext *ctx, JSValueConst val, size_t *out_size) {
+    /* Try ArrayBuffer first */
+    size_t size;
+    uint8_t *data = JS_GetArrayBuffer(ctx, &size, val);
+    if (data) {
+        *out_size = size;
+        return data;
+    }
+    
+    /* Try TypedArray */
+    size_t offset, len;
+    JSValue ab = JS_GetTypedArrayBuffer(ctx, val, &offset, &len, NULL);
+    if (!JS_IsException(ab)) {
+        data = JS_GetArrayBuffer(ctx, &size, ab);
+        JS_FreeValue(ctx, ab);
+        if (data) {
+            *out_size = len;
+            return data + offset;
+        }
+    }
+    
+    *out_size = 0;
+    return NULL;
+}
+
+/* texImage2D - multiple overloads:
+ * texImage2D(target, level, internalformat, width, height, border, format, type, pixels)
+ * texImage2D(target, level, internalformat, format, type, source) - WebGL convenience
+ */
+static JSValue js_webgl_texImage2D(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv) {
+    int target, level, internalformat;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    
+    if (argc >= 9) {
+        /* Full form: texImage2D(target, level, internalformat, width, height, border, format, type, pixels) */
+        int width, height, border, format, type;
+        if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &border, argv[5])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &format, argv[6])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &type, argv[7])) return JS_EXCEPTION;
+        
+        const void *pixels = NULL;
+        if (!JS_IsNull(argv[8]) && !JS_IsUndefined(argv[8])) {
+            size_t size;
+            pixels = get_texture_data(ctx, argv[8], &size);
+        }
+        
+        glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+    } else if (argc >= 6) {
+        /* Short form with source object: texImage2D(target, level, internalformat, format, type, source)
+         * source can be ImageData, HTMLImageElement, HTMLCanvasElement, etc.
+         * For now, we handle it as an object with width, height, and data properties */
+        int format, type;
+        if (JS_ToInt32(ctx, &format, argv[3])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &type, argv[4])) return JS_EXCEPTION;
+        
+        JSValue source = argv[5];
+        if (JS_IsNull(source) || JS_IsUndefined(source)) {
+            /* null source - creates uninitialized texture */
+            glTexImage2D(target, level, internalformat, 0, 0, 0, format, type, NULL);
+        } else {
+            /* Try to get width/height/data from source object */
+            JSValue w_val = JS_GetPropertyStr(ctx, source, "width");
+            JSValue h_val = JS_GetPropertyStr(ctx, source, "height");
+            JSValue data_val = JS_GetPropertyStr(ctx, source, "data");
+            
+            int width = 0, height = 0;
+            JS_ToInt32(ctx, &width, w_val);
+            JS_ToInt32(ctx, &height, h_val);
+            
+            const void *pixels = NULL;
+            size_t size = 0;
+            if (!JS_IsUndefined(data_val)) {
+                pixels = get_texture_data(ctx, data_val, &size);
+            }
+            
+            glTexImage2D(target, level, internalformat, width, height, 0, format, type, pixels);
+            
+            JS_FreeValue(ctx, w_val);
+            JS_FreeValue(ctx, h_val);
+            JS_FreeValue(ctx, data_val);
+        }
+    }
+    
+    return JS_UNDEFINED;
+}
+
+/* texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels)
+ * Also has short form with source object */
+static JSValue js_webgl_texSubImage2D(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    int target, level, xoffset, yoffset;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &xoffset, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &yoffset, argv[3])) return JS_EXCEPTION;
+    
+    if (argc >= 9) {
+        /* Full form */
+        int width, height, format, type;
+        if (JS_ToInt32(ctx, &width, argv[4])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &height, argv[5])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &format, argv[6])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &type, argv[7])) return JS_EXCEPTION;
+        
+        const void *pixels = NULL;
+        if (!JS_IsNull(argv[8]) && !JS_IsUndefined(argv[8])) {
+            size_t size;
+            pixels = get_texture_data(ctx, argv[8], &size);
+        }
+        
+        glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+    } else if (argc >= 7) {
+        /* Short form with source: texSubImage2D(target, level, xoffset, yoffset, format, type, source) */
+        int format, type;
+        if (JS_ToInt32(ctx, &format, argv[4])) return JS_EXCEPTION;
+        if (JS_ToInt32(ctx, &type, argv[5])) return JS_EXCEPTION;
+        
+        JSValue source = argv[6];
+        if (!JS_IsNull(source) && !JS_IsUndefined(source)) {
+            JSValue w_val = JS_GetPropertyStr(ctx, source, "width");
+            JSValue h_val = JS_GetPropertyStr(ctx, source, "height");
+            JSValue data_val = JS_GetPropertyStr(ctx, source, "data");
+            
+            int width = 0, height = 0;
+            JS_ToInt32(ctx, &width, w_val);
+            JS_ToInt32(ctx, &height, h_val);
+            
+            const void *pixels = NULL;
+            size_t size = 0;
+            if (!JS_IsUndefined(data_val)) {
+                pixels = get_texture_data(ctx, data_val, &size);
+            }
+            
+            glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+            
+            JS_FreeValue(ctx, w_val);
+            JS_FreeValue(ctx, h_val);
+            JS_FreeValue(ctx, data_val);
+        }
+    }
+    
+    return JS_UNDEFINED;
+}
+
+/* texImage3D (WebGL 2) */
+static JSValue js_webgl_texImage3D(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv) {
+    int target, level, internalformat, width, height, depth, border, format, type;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &depth, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &border, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &format, argv[7])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &type, argv[8])) return JS_EXCEPTION;
+    
+    const void *pixels = NULL;
+    if (argc > 9 && !JS_IsNull(argv[9]) && !JS_IsUndefined(argv[9])) {
+        size_t size;
+        pixels = get_texture_data(ctx, argv[9], &size);
+    }
+    
+    glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
+    return JS_UNDEFINED;
+}
+
+/* texSubImage3D (WebGL 2) */
+static JSValue js_webgl_texSubImage3D(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    int target, level, xoffset, yoffset, zoffset, width, height, depth, format, type;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &xoffset, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &yoffset, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &zoffset, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &depth, argv[7])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &format, argv[8])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &type, argv[9])) return JS_EXCEPTION;
+    
+    const void *pixels = NULL;
+    if (argc > 10 && !JS_IsNull(argv[10]) && !JS_IsUndefined(argv[10])) {
+        size_t size;
+        pixels = get_texture_data(ctx, argv[10], &size);
+    }
+    
+    glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+    return JS_UNDEFINED;
+}
+
+/* texStorage2D (WebGL 2) - immutable texture storage */
+static JSValue js_webgl_texStorage2D(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv) {
+    int target, levels, internalformat, width, height;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &levels, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+    
+    glTexStorage2D(target, levels, internalformat, width, height);
+    return JS_UNDEFINED;
+}
+
+/* texStorage3D (WebGL 2) */
+static JSValue js_webgl_texStorage3D(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv) {
+    int target, levels, internalformat, width, height, depth;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &levels, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &depth, argv[5])) return JS_EXCEPTION;
+    
+    glTexStorage3D(target, levels, internalformat, width, height, depth);
+    return JS_UNDEFINED;
+}
+
+/* copyTexImage2D */
+static JSValue js_webgl_copyTexImage2D(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv) {
+    int target, level, internalformat, x, y, width, height, border;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &x, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &y, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &border, argv[7])) return JS_EXCEPTION;
+    
+    glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+    return JS_UNDEFINED;
+}
+
+/* copyTexSubImage2D */
+static JSValue js_webgl_copyTexSubImage2D(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    int target, level, xoffset, yoffset, x, y, width, height;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &xoffset, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &yoffset, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &x, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &y, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[7])) return JS_EXCEPTION;
+    
+    glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+    return JS_UNDEFINED;
+}
+
+/* copyTexSubImage3D (WebGL 2) */
+static JSValue js_webgl_copyTexSubImage3D(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    int target, level, xoffset, yoffset, zoffset, x, y, width, height;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &xoffset, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &yoffset, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &zoffset, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &x, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &y, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[7])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[8])) return JS_EXCEPTION;
+    
+    glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+    return JS_UNDEFINED;
+}
+
+/* compressedTexImage2D */
+static JSValue js_webgl_compressedTexImage2D(JSContext *ctx, JSValueConst this_val,
+                                              int argc, JSValueConst *argv) {
+    int target, level, internalformat, width, height, border;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &border, argv[5])) return JS_EXCEPTION;
+    
+    size_t size = 0;
+    const void *data = NULL;
+    if (argc > 6 && !JS_IsNull(argv[6]) && !JS_IsUndefined(argv[6])) {
+        data = get_texture_data(ctx, argv[6], &size);
+    }
+    
+    glCompressedTexImage2D(target, level, internalformat, width, height, border, (GLsizei)size, data);
+    return JS_UNDEFINED;
+}
+
+/* compressedTexSubImage2D */
+static JSValue js_webgl_compressedTexSubImage2D(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    int target, level, xoffset, yoffset, width, height, format;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &xoffset, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &yoffset, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &format, argv[6])) return JS_EXCEPTION;
+    
+    size_t size = 0;
+    const void *data = NULL;
+    if (argc > 7 && !JS_IsNull(argv[7]) && !JS_IsUndefined(argv[7])) {
+        data = get_texture_data(ctx, argv[7], &size);
+    }
+    
+    glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, (GLsizei)size, data);
+    return JS_UNDEFINED;
+}
+
+/* compressedTexImage3D (WebGL 2) */
+static JSValue js_webgl_compressedTexImage3D(JSContext *ctx, JSValueConst this_val,
+                                              int argc, JSValueConst *argv) {
+    int target, level, internalformat, width, height, depth, border;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &depth, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &border, argv[6])) return JS_EXCEPTION;
+    
+    size_t size = 0;
+    const void *data = NULL;
+    if (argc > 7 && !JS_IsNull(argv[7]) && !JS_IsUndefined(argv[7])) {
+        data = get_texture_data(ctx, argv[7], &size);
+    }
+    
+    glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, (GLsizei)size, data);
+    return JS_UNDEFINED;
+}
+
+/* compressedTexSubImage3D (WebGL 2) */
+static JSValue js_webgl_compressedTexSubImage3D(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    int target, level, xoffset, yoffset, zoffset, width, height, depth, format;
+    
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &level, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &xoffset, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &yoffset, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &zoffset, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &depth, argv[7])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &format, argv[8])) return JS_EXCEPTION;
+    
+    size_t size = 0;
+    const void *data = NULL;
+    if (argc > 9 && !JS_IsNull(argv[9]) && !JS_IsUndefined(argv[9])) {
+        data = get_texture_data(ctx, argv[9], &size);
+    }
+    
+    glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, (GLsizei)size, data);
+    return JS_UNDEFINED;
+}
+
+/* isTexture */
+static JSValue js_webgl_isTexture(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) {
+        return JS_FALSE;
+    }
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_texture_class_id);
+    GLuint gl_tex = hashmap_get(wctx->textures, js_handle);
+    
+    if (gl_tex && glIsTexture(gl_tex)) {
+        return JS_TRUE;
+    }
+    return JS_FALSE;
+}
+
+/* getTexParameter */
+static JSValue js_webgl_getTexParameter(JSContext *ctx, JSValueConst this_val,
+                                         int argc, JSValueConst *argv) {
+    int target, pname;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    
+    /* Most texture parameters return integers */
+    switch (pname) {
+        case GL_TEXTURE_MAG_FILTER:
+        case GL_TEXTURE_MIN_FILTER:
+        case GL_TEXTURE_WRAP_S:
+        case GL_TEXTURE_WRAP_T:
+        case GL_TEXTURE_WRAP_R:
+        case GL_TEXTURE_COMPARE_MODE:
+        case GL_TEXTURE_COMPARE_FUNC:
+        case GL_TEXTURE_BASE_LEVEL:
+        case GL_TEXTURE_MAX_LEVEL:
+        case GL_TEXTURE_IMMUTABLE_FORMAT:
+        case GL_TEXTURE_IMMUTABLE_LEVELS: {
+            GLint value;
+            glGetTexParameteriv(target, pname, &value);
+            return JS_NewInt32(ctx, value);
+        }
+        case GL_TEXTURE_MIN_LOD:
+        case GL_TEXTURE_MAX_LOD: {
+            GLfloat value;
+            glGetTexParameterfv(target, pname, &value);
+            return JS_NewFloat64(ctx, value);
+        }
+        default: {
+            GLint value;
+            glGetTexParameteriv(target, pname, &value);
+            return JS_NewInt32(ctx, value);
+        }
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * Sampler Objects (WebGL 2)
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_createSampler(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    GLuint gl_sampler;
+    glGenSamplers(1, &gl_sampler);
+    
+    uint32_t js_handle = hashmap_alloc(wctx->samplers, gl_sampler);
+    return create_webgl_object(ctx, js_webgl_sampler_class_id, js_handle);
+}
+
+static JSValue js_webgl_deleteSampler(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sampler_class_id);
+    GLuint gl_sampler = hashmap_remove(wctx->samplers, js_handle);
+    
+    if (gl_sampler) {
+        glDeleteSamplers(1, &gl_sampler);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_isSampler(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) {
+        return JS_FALSE;
+    }
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sampler_class_id);
+    GLuint gl_sampler = hashmap_get(wctx->samplers, js_handle);
+    
+    if (gl_sampler && glIsSampler(gl_sampler)) {
+        return JS_TRUE;
+    }
+    return JS_FALSE;
+}
+
+static JSValue js_webgl_bindSampler(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int unit;
+    if (JS_ToInt32(ctx, &unit, argv[0])) return JS_EXCEPTION;
+    
+    GLuint gl_sampler = 0;
+    if (!JS_IsNull(argv[1]) && !JS_IsUndefined(argv[1])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[1], js_webgl_sampler_class_id);
+        gl_sampler = hashmap_get(wctx->samplers, js_handle);
+    }
+    
+    glBindSampler(unit, gl_sampler);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_samplerParameteri(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sampler_class_id);
+    GLuint gl_sampler = hashmap_get(wctx->samplers, js_handle);
+    
+    int pname, param;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &param, argv[2])) return JS_EXCEPTION;
+    
+    glSamplerParameteri(gl_sampler, pname, param);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_samplerParameterf(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sampler_class_id);
+    GLuint gl_sampler = hashmap_get(wctx->samplers, js_handle);
+    
+    int pname;
+    double param;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    if (JS_ToFloat64(ctx, &param, argv[2])) return JS_EXCEPTION;
+    
+    glSamplerParameterf(gl_sampler, pname, (GLfloat)param);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_getSamplerParameter(JSContext *ctx, JSValueConst this_val,
+                                             int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sampler_class_id);
+    GLuint gl_sampler = hashmap_get(wctx->samplers, js_handle);
+    
+    int pname;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    
+    switch (pname) {
+        case GL_TEXTURE_MAG_FILTER:
+        case GL_TEXTURE_MIN_FILTER:
+        case GL_TEXTURE_WRAP_S:
+        case GL_TEXTURE_WRAP_T:
+        case GL_TEXTURE_WRAP_R:
+        case GL_TEXTURE_COMPARE_MODE:
+        case GL_TEXTURE_COMPARE_FUNC: {
+            GLint value;
+            glGetSamplerParameteriv(gl_sampler, pname, &value);
+            return JS_NewInt32(ctx, value);
+        }
+        case GL_TEXTURE_MIN_LOD:
+        case GL_TEXTURE_MAX_LOD: {
+            GLfloat value;
+            glGetSamplerParameterfv(gl_sampler, pname, &value);
+            return JS_NewFloat64(ctx, value);
+        }
+        default: {
+            GLint value;
+            glGetSamplerParameteriv(gl_sampler, pname, &value);
+            return JS_NewInt32(ctx, value);
+        }
+    }
+}
+
+/* ==========================================================================
+ * Phase 4: Framebuffer Operations
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * Framebuffer Objects
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_createFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    GLuint gl_fbo;
+    glGenFramebuffers(1, &gl_fbo);
+    
+    uint32_t js_handle = hashmap_alloc(wctx->framebuffers, gl_fbo);
+    return create_webgl_object(ctx, js_webgl_framebuffer_class_id, js_handle);
+}
+
+static JSValue js_webgl_deleteFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_framebuffer_class_id);
+    GLuint gl_fbo = hashmap_remove(wctx->framebuffers, js_handle);
+    
+    if (gl_fbo) {
+        glDeleteFramebuffers(1, &gl_fbo);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_bindFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                         int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    GLuint gl_fbo = 0;
+    if (!JS_IsNull(argv[1]) && !JS_IsUndefined(argv[1])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[1], js_webgl_framebuffer_class_id);
+        gl_fbo = hashmap_get(wctx->framebuffers, js_handle);
+    }
+    
+    glBindFramebuffer(target, gl_fbo);
+    wctx->bound_framebuffer = gl_fbo;
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_isFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_FALSE;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_framebuffer_class_id);
+    GLuint gl_fbo = hashmap_get(wctx->framebuffers, js_handle);
+    
+    if (gl_fbo && glIsFramebuffer(gl_fbo)) return JS_TRUE;
+    return JS_FALSE;
+}
+
+static JSValue js_webgl_checkFramebufferStatus(JSContext *ctx, JSValueConst this_val,
+                                                int argc, JSValueConst *argv) {
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    GLenum status = glCheckFramebufferStatus(target);
+    return JS_NewInt32(ctx, status);
+}
+
+static JSValue js_webgl_framebufferTexture2D(JSContext *ctx, JSValueConst this_val,
+                                              int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target, attachment, textarget, level;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &attachment, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &textarget, argv[2])) return JS_EXCEPTION;
+    
+    GLuint gl_tex = 0;
+    if (!JS_IsNull(argv[3]) && !JS_IsUndefined(argv[3])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[3], js_webgl_texture_class_id);
+        gl_tex = hashmap_get(wctx->textures, js_handle);
+    }
+    
+    if (JS_ToInt32(ctx, &level, argv[4])) return JS_EXCEPTION;
+    
+    glFramebufferTexture2D(target, attachment, textarget, gl_tex, level);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_framebufferTextureLayer(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target, attachment, level, layer;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &attachment, argv[1])) return JS_EXCEPTION;
+    
+    GLuint gl_tex = 0;
+    if (!JS_IsNull(argv[2]) && !JS_IsUndefined(argv[2])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[2], js_webgl_texture_class_id);
+        gl_tex = hashmap_get(wctx->textures, js_handle);
+    }
+    
+    if (JS_ToInt32(ctx, &level, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &layer, argv[4])) return JS_EXCEPTION;
+    
+    glFramebufferTextureLayer(target, attachment, gl_tex, level, layer);
+    return JS_UNDEFINED;
+}
+
+/* --------------------------------------------------------------------------
+ * Renderbuffer Objects
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_createRenderbuffer(JSContext *ctx, JSValueConst this_val,
+                                            int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    GLuint gl_rbo;
+    glGenRenderbuffers(1, &gl_rbo);
+    
+    uint32_t js_handle = hashmap_alloc(wctx->renderbuffers, gl_rbo);
+    return create_webgl_object(ctx, js_webgl_renderbuffer_class_id, js_handle);
+}
+
+static JSValue js_webgl_deleteRenderbuffer(JSContext *ctx, JSValueConst this_val,
+                                            int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_renderbuffer_class_id);
+    GLuint gl_rbo = hashmap_remove(wctx->renderbuffers, js_handle);
+    
+    if (gl_rbo) {
+        glDeleteRenderbuffers(1, &gl_rbo);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_bindRenderbuffer(JSContext *ctx, JSValueConst this_val,
+                                          int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    GLuint gl_rbo = 0;
+    if (!JS_IsNull(argv[1]) && !JS_IsUndefined(argv[1])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[1], js_webgl_renderbuffer_class_id);
+        gl_rbo = hashmap_get(wctx->renderbuffers, js_handle);
+    }
+    
+    glBindRenderbuffer(target, gl_rbo);
+    wctx->bound_renderbuffer = gl_rbo;
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_isRenderbuffer(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_FALSE;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_renderbuffer_class_id);
+    GLuint gl_rbo = hashmap_get(wctx->renderbuffers, js_handle);
+    
+    if (gl_rbo && glIsRenderbuffer(gl_rbo)) return JS_TRUE;
+    return JS_FALSE;
+}
+
+static JSValue js_webgl_renderbufferStorage(JSContext *ctx, JSValueConst this_val,
+                                             int argc, JSValueConst *argv) {
+    int target, internalformat, width, height;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[3])) return JS_EXCEPTION;
+    
+    glRenderbufferStorage(target, internalformat, width, height);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_renderbufferStorageMultisample(JSContext *ctx, JSValueConst this_val,
+                                                        int argc, JSValueConst *argv) {
+    int target, samples, internalformat, width, height;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &samples, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &internalformat, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[4])) return JS_EXCEPTION;
+    
+    glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_framebufferRenderbuffer(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target, attachment, renderbuffertarget;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &attachment, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &renderbuffertarget, argv[2])) return JS_EXCEPTION;
+    
+    GLuint gl_rbo = 0;
+    if (!JS_IsNull(argv[3]) && !JS_IsUndefined(argv[3])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[3], js_webgl_renderbuffer_class_id);
+        gl_rbo = hashmap_get(wctx->renderbuffers, js_handle);
+    }
+    
+    glFramebufferRenderbuffer(target, attachment, renderbuffertarget, gl_rbo);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_getRenderbufferParameter(JSContext *ctx, JSValueConst this_val,
+                                                  int argc, JSValueConst *argv) {
+    int target, pname;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    
+    GLint value;
+    glGetRenderbufferParameteriv(target, pname, &value);
+    return JS_NewInt32(ctx, value);
+}
+
+static JSValue js_webgl_getFramebufferAttachmentParameter(JSContext *ctx, JSValueConst this_val,
+                                                           int argc, JSValueConst *argv) {
+    int target, attachment, pname;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &attachment, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &pname, argv[2])) return JS_EXCEPTION;
+    
+    GLint value;
+    glGetFramebufferAttachmentParameteriv(target, attachment, pname, &value);
+    return JS_NewInt32(ctx, value);
+}
+
+/* --------------------------------------------------------------------------
+ * Read Pixels
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_readPixels(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv) {
+    int x, y, width, height, format, type;
+    if (JS_ToInt32(ctx, &x, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &y, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &width, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &format, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &type, argv[5])) return JS_EXCEPTION;
+    
+    /* Get destination buffer */
+    size_t size;
+    uint8_t *pixels = get_texture_data(ctx, argv[6], &size);
+    if (!pixels) return JS_EXCEPTION;
+    
+    glReadPixels(x, y, width, height, format, type, pixels);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_readBuffer(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv) {
+    int src;
+    if (JS_ToInt32(ctx, &src, argv[0])) return JS_EXCEPTION;
+    
+    glReadBuffer(src);
+    return JS_UNDEFINED;
+}
+
+/* --------------------------------------------------------------------------
+ * Blit and Invalidate (WebGL 2)
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_blitFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                         int argc, JSValueConst *argv) {
+    int srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter;
+    if (JS_ToInt32(ctx, &srcX0, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &srcY0, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &srcX1, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &srcY1, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &dstX0, argv[4])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &dstY0, argv[5])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &dstX1, argv[6])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &dstY1, argv[7])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &mask, argv[8])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &filter, argv[9])) return JS_EXCEPTION;
+    
+    glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_invalidateFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                               int argc, JSValueConst *argv) {
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    /* Get attachments array */
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[1], "length");
+    int32_t count;
+    if (JS_ToInt32(ctx, &count, len_val)) {
+        JS_FreeValue(ctx, len_val);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, len_val);
+    
+    GLenum *attachments = (GLenum *)malloc(count * sizeof(GLenum));
+    if (!attachments) return JS_EXCEPTION;
+    
+    for (int i = 0; i < count; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[1], i);
+        int32_t att;
+        if (JS_ToInt32(ctx, &att, elem)) {
+            JS_FreeValue(ctx, elem);
+            free(attachments);
+            return JS_EXCEPTION;
+        }
+        attachments[i] = att;
+        JS_FreeValue(ctx, elem);
+    }
+    
+    glInvalidateFramebuffer(target, count, attachments);
+    free(attachments);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_invalidateSubFramebuffer(JSContext *ctx, JSValueConst this_val,
+                                                  int argc, JSValueConst *argv) {
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    /* Get attachments array */
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[1], "length");
+    int32_t count;
+    if (JS_ToInt32(ctx, &count, len_val)) {
+        JS_FreeValue(ctx, len_val);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, len_val);
+    
+    GLenum *attachments = (GLenum *)malloc(count * sizeof(GLenum));
+    if (!attachments) return JS_EXCEPTION;
+    
+    for (int i = 0; i < count; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[1], i);
+        int32_t att;
+        if (JS_ToInt32(ctx, &att, elem)) {
+            JS_FreeValue(ctx, elem);
+            free(attachments);
+            return JS_EXCEPTION;
+        }
+        attachments[i] = att;
+        JS_FreeValue(ctx, elem);
+    }
+    
+    int x, y, width, height;
+    if (JS_ToInt32(ctx, &x, argv[2])) { free(attachments); return JS_EXCEPTION; }
+    if (JS_ToInt32(ctx, &y, argv[3])) { free(attachments); return JS_EXCEPTION; }
+    if (JS_ToInt32(ctx, &width, argv[4])) { free(attachments); return JS_EXCEPTION; }
+    if (JS_ToInt32(ctx, &height, argv[5])) { free(attachments); return JS_EXCEPTION; }
+    
+    glInvalidateSubFramebuffer(target, count, attachments, x, y, width, height);
+    free(attachments);
+    return JS_UNDEFINED;
+}
+
+/* ==========================================================================
+ * Phase 6: Uniform Buffer Objects (WebGL 2)
+ * ========================================================================== */
+
+static JSValue js_webgl_getUniformBlockIndex(JSContext *ctx, JSValueConst this_val,
+                                              int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NewUint32(ctx, GL_INVALID_INDEX);
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    const char *name = JS_ToCString(ctx, argv[1]);
+    if (!name) return JS_EXCEPTION;
+    
+    GLuint index = glGetUniformBlockIndex(gl_prog, name);
+    JS_FreeCString(ctx, name);
+    
+    return JS_NewUint32(ctx, index);
+}
+
+static JSValue js_webgl_uniformBlockBinding(JSContext *ctx, JSValueConst this_val,
+                                             int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    uint32_t blockIndex, blockBinding;
+    if (JS_ToUint32(ctx, &blockIndex, argv[1])) return JS_EXCEPTION;
+    if (JS_ToUint32(ctx, &blockBinding, argv[2])) return JS_EXCEPTION;
+    
+    glUniformBlockBinding(gl_prog, blockIndex, blockBinding);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_bindBufferBase(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target;
+    uint32_t index;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToUint32(ctx, &index, argv[1])) return JS_EXCEPTION;
+    
+    GLuint gl_buf = 0;
+    if (!JS_IsNull(argv[2]) && !JS_IsUndefined(argv[2])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[2], js_webgl_buffer_class_id);
+        gl_buf = hashmap_get(wctx->buffers, js_handle);
+    }
+    
+    glBindBufferBase(target, index, gl_buf);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_bindBufferRange(JSContext *ctx, JSValueConst this_val,
+                                         int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target;
+    uint32_t index;
+    int64_t offset, size;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToUint32(ctx, &index, argv[1])) return JS_EXCEPTION;
+    
+    GLuint gl_buf = 0;
+    if (!JS_IsNull(argv[2]) && !JS_IsUndefined(argv[2])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[2], js_webgl_buffer_class_id);
+        gl_buf = hashmap_get(wctx->buffers, js_handle);
+    }
+    
+    if (JS_ToInt64(ctx, &offset, argv[3])) return JS_EXCEPTION;
+    if (JS_ToInt64(ctx, &size, argv[4])) return JS_EXCEPTION;
+    
+    glBindBufferRange(target, index, gl_buf, offset, size);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_getActiveUniformBlockParameter(JSContext *ctx, JSValueConst this_val,
+                                                        int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    uint32_t blockIndex;
+    int pname;
+    if (JS_ToUint32(ctx, &blockIndex, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &pname, argv[2])) return JS_EXCEPTION;
+    
+    switch (pname) {
+        case GL_UNIFORM_BLOCK_BINDING:
+        case GL_UNIFORM_BLOCK_DATA_SIZE:
+        case GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS: {
+            GLint value;
+            glGetActiveUniformBlockiv(gl_prog, blockIndex, pname, &value);
+            return JS_NewInt32(ctx, value);
+        }
+        case GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES: {
+            GLint count;
+            glGetActiveUniformBlockiv(gl_prog, blockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &count);
+            GLint *indices = (GLint *)malloc(count * sizeof(GLint));
+            if (!indices) return JS_EXCEPTION;
+            glGetActiveUniformBlockiv(gl_prog, blockIndex, pname, indices);
+            JSValue arr = JS_NewArray(ctx);
+            for (int i = 0; i < count; i++) {
+                JS_SetPropertyUint32(ctx, arr, i, JS_NewInt32(ctx, indices[i]));
+            }
+            free(indices);
+            return arr;
+        }
+        case GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER:
+        case GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER: {
+            GLint value;
+            glGetActiveUniformBlockiv(gl_prog, blockIndex, pname, &value);
+            return value ? JS_TRUE : JS_FALSE;
+        }
+        default: {
+            GLint value;
+            glGetActiveUniformBlockiv(gl_prog, blockIndex, pname, &value);
+            return JS_NewInt32(ctx, value);
+        }
+    }
+}
+
+static JSValue js_webgl_getActiveUniformBlockName(JSContext *ctx, JSValueConst this_val,
+                                                   int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    uint32_t blockIndex;
+    if (JS_ToUint32(ctx, &blockIndex, argv[1])) return JS_EXCEPTION;
+    
+    GLint nameLen;
+    glGetActiveUniformBlockiv(gl_prog, blockIndex, GL_UNIFORM_BLOCK_NAME_LENGTH, &nameLen);
+    
+    char *name = (char *)malloc(nameLen);
+    if (!name) return JS_EXCEPTION;
+    
+    glGetActiveUniformBlockName(gl_prog, blockIndex, nameLen, NULL, name);
+    JSValue result = JS_NewString(ctx, name);
+    free(name);
+    
+    return result;
+}
+
+static JSValue js_webgl_getActiveUniforms(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    /* Get indices array */
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[1], "length");
+    int32_t count;
+    if (JS_ToInt32(ctx, &count, len_val)) {
+        JS_FreeValue(ctx, len_val);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, len_val);
+    
+    GLuint *indices = (GLuint *)malloc(count * sizeof(GLuint));
+    GLint *params = (GLint *)malloc(count * sizeof(GLint));
+    if (!indices || !params) {
+        free(indices);
+        free(params);
+        return JS_EXCEPTION;
+    }
+    
+    for (int i = 0; i < count; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[1], i);
+        uint32_t idx;
+        if (JS_ToUint32(ctx, &idx, elem)) {
+            JS_FreeValue(ctx, elem);
+            free(indices);
+            free(params);
+            return JS_EXCEPTION;
+        }
+        indices[i] = idx;
+        JS_FreeValue(ctx, elem);
+    }
+    
+    int pname;
+    if (JS_ToInt32(ctx, &pname, argv[2])) {
+        free(indices);
+        free(params);
+        return JS_EXCEPTION;
+    }
+    
+    glGetActiveUniformsiv(gl_prog, count, indices, pname, params);
+    
+    JSValue arr = JS_NewArray(ctx);
+    for (int i = 0; i < count; i++) {
+        if (pname == GL_UNIFORM_IS_ROW_MAJOR) {
+            JS_SetPropertyUint32(ctx, arr, i, params[i] ? JS_TRUE : JS_FALSE);
+        } else {
+            JS_SetPropertyUint32(ctx, arr, i, JS_NewInt32(ctx, params[i]));
+        }
+    }
+    
+    free(indices);
+    free(params);
+    return arr;
+}
+
+/* ==========================================================================
+ * Phase 7: Advanced Features
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * Query Objects (WebGL 2)
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_createQuery(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    GLuint gl_query;
+    glGenQueries(1, &gl_query);
+    
+    uint32_t js_handle = hashmap_alloc(wctx->queries, gl_query);
+    return create_webgl_object(ctx, js_webgl_query_class_id, js_handle);
+}
+
+static JSValue js_webgl_deleteQuery(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_query_class_id);
+    GLuint gl_query = hashmap_remove(wctx->queries, js_handle);
+    
+    if (gl_query) {
+        glDeleteQueries(1, &gl_query);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_isQuery(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_FALSE;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_query_class_id);
+    GLuint gl_query = hashmap_get(wctx->queries, js_handle);
+    
+    if (gl_query && glIsQuery(gl_query)) return JS_TRUE;
+    return JS_FALSE;
+}
+
+static JSValue js_webgl_beginQuery(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[1]) || JS_IsUndefined(argv[1])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[1], js_webgl_query_class_id);
+    GLuint gl_query = hashmap_get(wctx->queries, js_handle);
+    
+    glBeginQuery(target, gl_query);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_endQuery(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv) {
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    glEndQuery(target);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_getQuery(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv) {
+    int target, pname;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    
+    GLint value;
+    glGetQueryiv(target, pname, &value);
+    
+    /* CURRENT_QUERY returns a query object, others return int */
+    if (pname == GL_CURRENT_QUERY) {
+        if (value == 0) return JS_NULL;
+        /* Note: In a full implementation, we'd need to reverse-lookup the JS object */
+        return JS_NewInt32(ctx, value);
+    }
+    
+    return JS_NewInt32(ctx, value);
+}
+
+static JSValue js_webgl_getQueryParameter(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_query_class_id);
+    GLuint gl_query = hashmap_get(wctx->queries, js_handle);
+    
+    int pname;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    
+    if (pname == GL_QUERY_RESULT_AVAILABLE) {
+        GLuint value;
+        glGetQueryObjectuiv(gl_query, pname, &value);
+        return value ? JS_TRUE : JS_FALSE;
+    } else {
+        GLuint value;
+        glGetQueryObjectuiv(gl_query, pname, &value);
+        return JS_NewUint32(ctx, value);
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * Sync Objects (WebGL 2)
+ * -------------------------------------------------------------------------- */
+
+/* Note: Sync objects need special handling as they're pointers, not GLuints */
+static HashMap *sync_map = NULL;  /* Maps JS handles to GLsync pointers */
+
+static JSValue js_webgl_fenceSync(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv) {
+    int condition, flags;
+    if (JS_ToInt32(ctx, &condition, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &flags, argv[1])) return JS_EXCEPTION;
+    
+    GLsync sync = glFenceSync(condition, flags);
+    if (!sync) return JS_NULL;
+    
+    /* Store sync pointer - using a simple approach for now */
+    /* In a full implementation, we'd need a proper pointer map */
+    uint32_t js_handle = (uint32_t)(uintptr_t)sync;  /* Truncate pointer to handle */
+    return create_webgl_object(ctx, js_webgl_sync_class_id, js_handle);
+}
+
+static JSValue js_webgl_deleteSync(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv) {
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sync_class_id);
+    GLsync sync = (GLsync)(uintptr_t)js_handle;
+    
+    if (sync) {
+        glDeleteSync(sync);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_isSync(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv) {
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_FALSE;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sync_class_id);
+    GLsync sync = (GLsync)(uintptr_t)js_handle;
+    
+    if (sync && glIsSync(sync)) return JS_TRUE;
+    return JS_FALSE;
+}
+
+static JSValue js_webgl_clientWaitSync(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv) {
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) {
+        return JS_NewInt32(ctx, GL_WAIT_FAILED);
+    }
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sync_class_id);
+    GLsync sync = (GLsync)(uintptr_t)js_handle;
+    
+    int flags;
+    int64_t timeout;
+    if (JS_ToInt32(ctx, &flags, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt64(ctx, &timeout, argv[2])) return JS_EXCEPTION;
+    
+    GLenum result = glClientWaitSync(sync, flags, timeout);
+    return JS_NewInt32(ctx, result);
+}
+
+static JSValue js_webgl_waitSync(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv) {
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sync_class_id);
+    GLsync sync = (GLsync)(uintptr_t)js_handle;
+    
+    int flags;
+    int64_t timeout;
+    if (JS_ToInt32(ctx, &flags, argv[1])) return JS_EXCEPTION;
+    if (JS_ToInt64(ctx, &timeout, argv[2])) return JS_EXCEPTION;
+    
+    glWaitSync(sync, flags, timeout);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_getSyncParameter(JSContext *ctx, JSValueConst this_val,
+                                          int argc, JSValueConst *argv) {
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_sync_class_id);
+    GLsync sync = (GLsync)(uintptr_t)js_handle;
+    
+    int pname;
+    if (JS_ToInt32(ctx, &pname, argv[1])) return JS_EXCEPTION;
+    
+    GLint value;
+    GLsizei len;
+    glGetSynciv(sync, pname, 1, &len, &value);
+    
+    if (pname == GL_SYNC_STATUS) {
+        return JS_NewInt32(ctx, value);
+    }
+    return JS_NewInt32(ctx, value);
+}
+
+/* --------------------------------------------------------------------------
+ * Transform Feedback (WebGL 2)
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_createTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    GLuint gl_tf;
+    glGenTransformFeedbacks(1, &gl_tf);
+    
+    uint32_t js_handle = hashmap_alloc(wctx->transform_feedbacks, gl_tf);
+    return create_webgl_object(ctx, js_webgl_transform_feedback_class_id, js_handle);
+}
+
+static JSValue js_webgl_deleteTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_transform_feedback_class_id);
+    GLuint gl_tf = hashmap_remove(wctx->transform_feedbacks, js_handle);
+    
+    if (gl_tf) {
+        glDeleteTransformFeedbacks(1, &gl_tf);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_isTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                             int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_FALSE;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_transform_feedback_class_id);
+    GLuint gl_tf = hashmap_get(wctx->transform_feedbacks, js_handle);
+    
+    if (gl_tf && glIsTransformFeedback(gl_tf)) return JS_TRUE;
+    return JS_FALSE;
+}
+
+static JSValue js_webgl_bindTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                               int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    int target;
+    if (JS_ToInt32(ctx, &target, argv[0])) return JS_EXCEPTION;
+    
+    GLuint gl_tf = 0;
+    if (!JS_IsNull(argv[1]) && !JS_IsUndefined(argv[1])) {
+        uint32_t js_handle = get_webgl_object_handle(ctx, argv[1], js_webgl_transform_feedback_class_id);
+        gl_tf = hashmap_get(wctx->transform_feedbacks, js_handle);
+    }
+    
+    glBindTransformFeedback(target, gl_tf);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_beginTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                                int argc, JSValueConst *argv) {
+    int primitiveMode;
+    if (JS_ToInt32(ctx, &primitiveMode, argv[0])) return JS_EXCEPTION;
+    
+    glBeginTransformFeedback(primitiveMode);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_endTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                              int argc, JSValueConst *argv) {
+    glEndTransformFeedback();
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_pauseTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                                int argc, JSValueConst *argv) {
+    glPauseTransformFeedback();
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_resumeTransformFeedback(JSContext *ctx, JSValueConst this_val,
+                                                 int argc, JSValueConst *argv) {
+    glResumeTransformFeedback();
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_transformFeedbackVaryings(JSContext *ctx, JSValueConst this_val,
+                                                   int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_UNDEFINED;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    /* Get varyings array */
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[1], "length");
+    int32_t count;
+    if (JS_ToInt32(ctx, &count, len_val)) {
+        JS_FreeValue(ctx, len_val);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, len_val);
+    
+    const char **varyings = (const char **)malloc(count * sizeof(char *));
+    if (!varyings) return JS_EXCEPTION;
+    
+    for (int i = 0; i < count; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[1], i);
+        varyings[i] = JS_ToCString(ctx, elem);
+        JS_FreeValue(ctx, elem);
+        if (!varyings[i]) {
+            for (int j = 0; j < i; j++) JS_FreeCString(ctx, varyings[j]);
+            free(varyings);
+            return JS_EXCEPTION;
+        }
+    }
+    
+    int bufferMode;
+    if (JS_ToInt32(ctx, &bufferMode, argv[2])) {
+        for (int i = 0; i < count; i++) JS_FreeCString(ctx, varyings[i]);
+        free(varyings);
+        return JS_EXCEPTION;
+    }
+    
+    glTransformFeedbackVaryings(gl_prog, count, varyings, bufferMode);
+    
+    for (int i = 0; i < count; i++) JS_FreeCString(ctx, varyings[i]);
+    free(varyings);
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_getTransformFeedbackVarying(JSContext *ctx, JSValueConst this_val,
+                                                     int argc, JSValueConst *argv) {
+    WebGLContext *wctx = get_webgl_context(ctx, this_val);
+    if (!wctx) return JS_EXCEPTION;
+    
+    if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) return JS_NULL;
+    
+    uint32_t js_handle = get_webgl_object_handle(ctx, argv[0], js_webgl_program_class_id);
+    GLuint gl_prog = hashmap_get(wctx->programs, js_handle);
+    
+    uint32_t index;
+    if (JS_ToUint32(ctx, &index, argv[1])) return JS_EXCEPTION;
+    
+    char name[256];
+    GLsizei length;
+    GLsizei size;
+    GLenum type;
+    
+    glGetTransformFeedbackVarying(gl_prog, index, sizeof(name), &length, &size, &type, name);
+    
+    /* Return WebGLActiveInfo-like object */
+    JSValue info = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, info, "name", JS_NewString(ctx, name));
+    JS_SetPropertyStr(ctx, info, "size", JS_NewInt32(ctx, size));
+    JS_SetPropertyStr(ctx, info, "type", JS_NewInt32(ctx, type));
+    
+    return info;
+}
+
+/* --------------------------------------------------------------------------
+ * Multiple Render Targets (WebGL 2)
+ * -------------------------------------------------------------------------- */
+
+static JSValue js_webgl_drawBuffers(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv) {
+    /* Get buffers array */
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[0], "length");
+    int32_t count;
+    if (JS_ToInt32(ctx, &count, len_val)) {
+        JS_FreeValue(ctx, len_val);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, len_val);
+    
+    GLenum *buffers = (GLenum *)malloc(count * sizeof(GLenum));
+    if (!buffers) return JS_EXCEPTION;
+    
+    for (int i = 0; i < count; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[0], i);
+        int32_t buf;
+        if (JS_ToInt32(ctx, &buf, elem)) {
+            JS_FreeValue(ctx, elem);
+            free(buffers);
+            return JS_EXCEPTION;
+        }
+        buffers[i] = buf;
+        JS_FreeValue(ctx, elem);
+    }
+    
+    glDrawBuffers(count, buffers);
+    free(buffers);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_clearBufferfv(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    int buffer, drawbuffer;
+    if (JS_ToInt32(ctx, &buffer, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &drawbuffer, argv[1])) return JS_EXCEPTION;
+    
+    /* Get values from array/TypedArray */
+    size_t size;
+    uint8_t *data = get_texture_data(ctx, argv[2], &size);
+    
+    if (data) {
+        glClearBufferfv(buffer, drawbuffer, (GLfloat *)data);
+    } else {
+        /* Try as regular array */
+        GLfloat values[4] = {0};
+        JSValue len_val = JS_GetPropertyStr(ctx, argv[2], "length");
+        int32_t count;
+        JS_ToInt32(ctx, &count, len_val);
+        JS_FreeValue(ctx, len_val);
+        
+        for (int i = 0; i < count && i < 4; i++) {
+            JSValue elem = JS_GetPropertyUint32(ctx, argv[2], i);
+            double v;
+            JS_ToFloat64(ctx, &v, elem);
+            values[i] = (GLfloat)v;
+            JS_FreeValue(ctx, elem);
+        }
+        glClearBufferfv(buffer, drawbuffer, values);
+    }
+    
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_clearBufferiv(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    int buffer, drawbuffer;
+    if (JS_ToInt32(ctx, &buffer, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &drawbuffer, argv[1])) return JS_EXCEPTION;
+    
+    /* Get values from array */
+    GLint values[4] = {0};
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[2], "length");
+    int32_t count;
+    JS_ToInt32(ctx, &count, len_val);
+    JS_FreeValue(ctx, len_val);
+    
+    for (int i = 0; i < count && i < 4; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[2], i);
+        int32_t v;
+        JS_ToInt32(ctx, &v, elem);
+        values[i] = v;
+        JS_FreeValue(ctx, elem);
+    }
+    
+    glClearBufferiv(buffer, drawbuffer, values);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_clearBufferuiv(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv) {
+    int buffer, drawbuffer;
+    if (JS_ToInt32(ctx, &buffer, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &drawbuffer, argv[1])) return JS_EXCEPTION;
+    
+    /* Get values from array */
+    GLuint values[4] = {0};
+    JSValue len_val = JS_GetPropertyStr(ctx, argv[2], "length");
+    int32_t count;
+    JS_ToInt32(ctx, &count, len_val);
+    JS_FreeValue(ctx, len_val);
+    
+    for (int i = 0; i < count && i < 4; i++) {
+        JSValue elem = JS_GetPropertyUint32(ctx, argv[2], i);
+        uint32_t v;
+        JS_ToUint32(ctx, &v, elem);
+        values[i] = v;
+        JS_FreeValue(ctx, elem);
+    }
+    
+    glClearBufferuiv(buffer, drawbuffer, values);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_webgl_clearBufferfi(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv) {
+    int buffer, drawbuffer;
+    double depth;
+    int stencil;
+    
+    if (JS_ToInt32(ctx, &buffer, argv[0])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &drawbuffer, argv[1])) return JS_EXCEPTION;
+    if (JS_ToFloat64(ctx, &depth, argv[2])) return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &stencil, argv[3])) return JS_EXCEPTION;
+    
+    glClearBufferfi(buffer, drawbuffer, (GLfloat)depth, stencil);
+    return JS_UNDEFINED;
+}
+
 /* --------------------------------------------------------------------------
  * Finish/Flush
  * -------------------------------------------------------------------------- */
@@ -2849,10 +4567,104 @@ void minirend_webgl_register(JSContext *ctx, MinirendApp *app) {
     REG_METHOD("createTexture", js_webgl_createTexture, 0);
     REG_METHOD("bindTexture", js_webgl_bindTexture, 2);
     REG_METHOD("deleteTexture", js_webgl_deleteTexture, 1);
+    REG_METHOD("isTexture", js_webgl_isTexture, 1);
     REG_METHOD("activeTexture", js_webgl_activeTexture, 1);
     REG_METHOD("texParameteri", js_webgl_texParameteri, 3);
     REG_METHOD("texParameterf", js_webgl_texParameterf, 3);
+    REG_METHOD("getTexParameter", js_webgl_getTexParameter, 2);
     REG_METHOD("generateMipmap", js_webgl_generateMipmap, 1);
+    REG_METHOD("texImage2D", js_webgl_texImage2D, 9);
+    REG_METHOD("texSubImage2D", js_webgl_texSubImage2D, 9);
+    REG_METHOD("texImage3D", js_webgl_texImage3D, 10);
+    REG_METHOD("texSubImage3D", js_webgl_texSubImage3D, 11);
+    REG_METHOD("texStorage2D", js_webgl_texStorage2D, 5);
+    REG_METHOD("texStorage3D", js_webgl_texStorage3D, 6);
+    REG_METHOD("copyTexImage2D", js_webgl_copyTexImage2D, 8);
+    REG_METHOD("copyTexSubImage2D", js_webgl_copyTexSubImage2D, 8);
+    REG_METHOD("copyTexSubImage3D", js_webgl_copyTexSubImage3D, 9);
+    REG_METHOD("compressedTexImage2D", js_webgl_compressedTexImage2D, 7);
+    REG_METHOD("compressedTexSubImage2D", js_webgl_compressedTexSubImage2D, 8);
+    REG_METHOD("compressedTexImage3D", js_webgl_compressedTexImage3D, 8);
+    REG_METHOD("compressedTexSubImage3D", js_webgl_compressedTexSubImage3D, 10);
+    
+    /* Sampler methods (WebGL 2) */
+    REG_METHOD("createSampler", js_webgl_createSampler, 0);
+    REG_METHOD("deleteSampler", js_webgl_deleteSampler, 1);
+    REG_METHOD("isSampler", js_webgl_isSampler, 1);
+    REG_METHOD("bindSampler", js_webgl_bindSampler, 2);
+    REG_METHOD("samplerParameteri", js_webgl_samplerParameteri, 3);
+    REG_METHOD("samplerParameterf", js_webgl_samplerParameterf, 3);
+    REG_METHOD("getSamplerParameter", js_webgl_getSamplerParameter, 2);
+    
+    /* Framebuffer methods */
+    REG_METHOD("createFramebuffer", js_webgl_createFramebuffer, 0);
+    REG_METHOD("deleteFramebuffer", js_webgl_deleteFramebuffer, 1);
+    REG_METHOD("bindFramebuffer", js_webgl_bindFramebuffer, 2);
+    REG_METHOD("isFramebuffer", js_webgl_isFramebuffer, 1);
+    REG_METHOD("checkFramebufferStatus", js_webgl_checkFramebufferStatus, 1);
+    REG_METHOD("framebufferTexture2D", js_webgl_framebufferTexture2D, 5);
+    REG_METHOD("framebufferTextureLayer", js_webgl_framebufferTextureLayer, 5);
+    REG_METHOD("framebufferRenderbuffer", js_webgl_framebufferRenderbuffer, 4);
+    REG_METHOD("getFramebufferAttachmentParameter", js_webgl_getFramebufferAttachmentParameter, 3);
+    REG_METHOD("blitFramebuffer", js_webgl_blitFramebuffer, 10);
+    REG_METHOD("invalidateFramebuffer", js_webgl_invalidateFramebuffer, 2);
+    REG_METHOD("invalidateSubFramebuffer", js_webgl_invalidateSubFramebuffer, 6);
+    REG_METHOD("readBuffer", js_webgl_readBuffer, 1);
+    REG_METHOD("readPixels", js_webgl_readPixels, 7);
+    
+    /* Renderbuffer methods */
+    REG_METHOD("createRenderbuffer", js_webgl_createRenderbuffer, 0);
+    REG_METHOD("deleteRenderbuffer", js_webgl_deleteRenderbuffer, 1);
+    REG_METHOD("bindRenderbuffer", js_webgl_bindRenderbuffer, 2);
+    REG_METHOD("isRenderbuffer", js_webgl_isRenderbuffer, 1);
+    REG_METHOD("renderbufferStorage", js_webgl_renderbufferStorage, 4);
+    REG_METHOD("renderbufferStorageMultisample", js_webgl_renderbufferStorageMultisample, 5);
+    REG_METHOD("getRenderbufferParameter", js_webgl_getRenderbufferParameter, 2);
+    
+    /* Uniform Buffer Objects (WebGL 2) */
+    REG_METHOD("getUniformBlockIndex", js_webgl_getUniformBlockIndex, 2);
+    REG_METHOD("uniformBlockBinding", js_webgl_uniformBlockBinding, 3);
+    REG_METHOD("bindBufferBase", js_webgl_bindBufferBase, 3);
+    REG_METHOD("bindBufferRange", js_webgl_bindBufferRange, 5);
+    REG_METHOD("getActiveUniformBlockParameter", js_webgl_getActiveUniformBlockParameter, 3);
+    REG_METHOD("getActiveUniformBlockName", js_webgl_getActiveUniformBlockName, 2);
+    REG_METHOD("getActiveUniforms", js_webgl_getActiveUniforms, 3);
+    
+    /* Query Objects (WebGL 2) */
+    REG_METHOD("createQuery", js_webgl_createQuery, 0);
+    REG_METHOD("deleteQuery", js_webgl_deleteQuery, 1);
+    REG_METHOD("isQuery", js_webgl_isQuery, 1);
+    REG_METHOD("beginQuery", js_webgl_beginQuery, 2);
+    REG_METHOD("endQuery", js_webgl_endQuery, 1);
+    REG_METHOD("getQuery", js_webgl_getQuery, 2);
+    REG_METHOD("getQueryParameter", js_webgl_getQueryParameter, 2);
+    
+    /* Sync Objects (WebGL 2) */
+    REG_METHOD("fenceSync", js_webgl_fenceSync, 2);
+    REG_METHOD("deleteSync", js_webgl_deleteSync, 1);
+    REG_METHOD("isSync", js_webgl_isSync, 1);
+    REG_METHOD("clientWaitSync", js_webgl_clientWaitSync, 3);
+    REG_METHOD("waitSync", js_webgl_waitSync, 3);
+    REG_METHOD("getSyncParameter", js_webgl_getSyncParameter, 2);
+    
+    /* Transform Feedback (WebGL 2) */
+    REG_METHOD("createTransformFeedback", js_webgl_createTransformFeedback, 0);
+    REG_METHOD("deleteTransformFeedback", js_webgl_deleteTransformFeedback, 1);
+    REG_METHOD("isTransformFeedback", js_webgl_isTransformFeedback, 1);
+    REG_METHOD("bindTransformFeedback", js_webgl_bindTransformFeedback, 2);
+    REG_METHOD("beginTransformFeedback", js_webgl_beginTransformFeedback, 1);
+    REG_METHOD("endTransformFeedback", js_webgl_endTransformFeedback, 0);
+    REG_METHOD("pauseTransformFeedback", js_webgl_pauseTransformFeedback, 0);
+    REG_METHOD("resumeTransformFeedback", js_webgl_resumeTransformFeedback, 0);
+    REG_METHOD("transformFeedbackVaryings", js_webgl_transformFeedbackVaryings, 3);
+    REG_METHOD("getTransformFeedbackVarying", js_webgl_getTransformFeedbackVarying, 2);
+    
+    /* Multiple Render Targets (WebGL 2) */
+    REG_METHOD("drawBuffers", js_webgl_drawBuffers, 1);
+    REG_METHOD("clearBufferfv", js_webgl_clearBufferfv, 3);
+    REG_METHOD("clearBufferiv", js_webgl_clearBufferiv, 3);
+    REG_METHOD("clearBufferuiv", js_webgl_clearBufferuiv, 3);
+    REG_METHOD("clearBufferfi", js_webgl_clearBufferfi, 4);
     
     /* Finish/Flush */
     REG_METHOD("flush", js_webgl_flush, 0);

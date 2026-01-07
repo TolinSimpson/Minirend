@@ -191,6 +191,8 @@ static void (*proc_glFogi)(GLenum pname, GLint param) = NULL;
 static void (*proc_glFogiv)(GLenum pname, const GLint * params) = NULL;
 static void (*proc_glFramebufferRenderbuffer)(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) = NULL;
 static void (*proc_glFramebufferTexture)(GLenum target, GLenum attachment, GLuint texture, GLint level) = NULL;
+static void (*proc_glInvalidateFramebuffer)(GLenum target, GLsizei numAttachments, const GLenum * attachments) = NULL;
+static void (*proc_glInvalidateSubFramebuffer)(GLenum target, GLsizei numAttachments, const GLenum * attachments, GLint x, GLint y, GLsizei width, GLsizei height) = NULL;
 static void (*proc_glFramebufferTexture1D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) = NULL;
 static void (*proc_glFramebufferTexture2D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) = NULL;
 static void (*proc_glFramebufferTexture3D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset) = NULL;
@@ -601,6 +603,8 @@ static void (*proc_glTexParameteriv)(GLenum target, GLenum pname, const GLint * 
 static void (*proc_glTexSubImage1D)(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void * pixels) = NULL;
 static void (*proc_glTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void * pixels) = NULL;
 static void (*proc_glTexSubImage3D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void * pixels) = NULL;
+static void (*proc_glTexStorage2D)(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height) = NULL;
+static void (*proc_glTexStorage3D)(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth) = NULL;
 static void (*proc_glTransformFeedbackVaryings)(GLuint program, GLsizei count, const GLchar *const* varyings, GLenum bufferMode) = NULL;
 static void (*proc_glTranslated)(GLdouble x, GLdouble y, GLdouble z) = NULL;
 static void (*proc_glTranslatef)(GLfloat x, GLfloat y, GLfloat z) = NULL;
@@ -964,6 +968,8 @@ static void load_gl_shims(void) {
     proc_glFogiv = cosmo_dltramp(cosmo_dlsym(libgl, "glFogiv"));
     proc_glFramebufferRenderbuffer = cosmo_dltramp(cosmo_dlsym(libgl, "glFramebufferRenderbuffer"));
     proc_glFramebufferTexture = cosmo_dltramp(cosmo_dlsym(libgl, "glFramebufferTexture"));
+    proc_glInvalidateFramebuffer = cosmo_dltramp(cosmo_dlsym(libgl, "glInvalidateFramebuffer"));
+    proc_glInvalidateSubFramebuffer = cosmo_dltramp(cosmo_dlsym(libgl, "glInvalidateSubFramebuffer"));
     proc_glFramebufferTexture1D = cosmo_dltramp(cosmo_dlsym(libgl, "glFramebufferTexture1D"));
     proc_glFramebufferTexture2D = cosmo_dltramp(cosmo_dlsym(libgl, "glFramebufferTexture2D"));
     proc_glFramebufferTexture3D = cosmo_dltramp(cosmo_dlsym(libgl, "glFramebufferTexture3D"));
@@ -1374,6 +1380,8 @@ static void load_gl_shims(void) {
     proc_glTexSubImage1D = cosmo_dltramp(cosmo_dlsym(libgl, "glTexSubImage1D"));
     proc_glTexSubImage2D = cosmo_dltramp(cosmo_dlsym(libgl, "glTexSubImage2D"));
     proc_glTexSubImage3D = cosmo_dltramp(cosmo_dlsym(libgl, "glTexSubImage3D"));
+    proc_glTexStorage2D = cosmo_dltramp(cosmo_dlsym(libgl, "glTexStorage2D"));
+    proc_glTexStorage3D = cosmo_dltramp(cosmo_dlsym(libgl, "glTexStorage3D"));
     proc_glTransformFeedbackVaryings = cosmo_dltramp(cosmo_dlsym(libgl, "glTransformFeedbackVaryings"));
     proc_glTranslated = cosmo_dltramp(cosmo_dlsym(libgl, "glTranslated"));
     proc_glTranslatef = cosmo_dltramp(cosmo_dlsym(libgl, "glTranslatef"));
@@ -2664,6 +2672,18 @@ void glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLin
     if (libgl == NULL) { load_gl_shims(); }
 
     proc_glFramebufferTexture(target, attachment, texture, level);
+}
+
+void glInvalidateFramebuffer(GLenum target, GLsizei numAttachments, const GLenum * attachments) {
+    if (libgl == NULL) { load_gl_shims(); }
+
+    proc_glInvalidateFramebuffer(target, numAttachments, attachments);
+}
+
+void glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachments, const GLenum * attachments, GLint x, GLint y, GLsizei width, GLsizei height) {
+    if (libgl == NULL) { load_gl_shims(); }
+
+    proc_glInvalidateSubFramebuffer(target, numAttachments, attachments, x, y, width, height);
 }
 
 void glFramebufferTexture1D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) {
@@ -5124,6 +5144,18 @@ void glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, G
     if (libgl == NULL) { load_gl_shims(); }
 
     proc_glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+}
+
+void glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height) {
+    if (libgl == NULL) { load_gl_shims(); }
+
+    proc_glTexStorage2D(target, levels, internalformat, width, height);
+}
+
+void glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth) {
+    if (libgl == NULL) { load_gl_shims(); }
+
+    proc_glTexStorage3D(target, levels, internalformat, width, height, depth);
 }
 
 void glTransformFeedbackVaryings(GLuint program, GLsizei count, const GLchar *const* varyings, GLenum bufferMode) {
